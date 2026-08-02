@@ -418,6 +418,31 @@ shop: {
     }
 },
 
+  // =====================================
+// COMMAND MAPPING REFERENCE
+// =====================================
+commands: {
+    leaderboards: {
+        silverCoins: "!SLeaderboard",
+        mana: "!MLeaderboard"
+    },
+    balanceChecks: {
+        silverCoins: "!silvers @user",
+        mana: "!mana @user"
+    },
+    protection: {
+        shield: "!shield" // Permanently protects both silver coins and mana from being stolen/drained
+    },
+    actions: {
+        work: "!work",
+        mine: "!mine",
+        train: "!train",
+        rest: "!rest",
+        eat: "!eat",
+        steal: "!steal @user",
+        manaDrain: "!manadrain @user"
+    }
+}, 
 
   // =========================
   // TICKET SYSTEM
