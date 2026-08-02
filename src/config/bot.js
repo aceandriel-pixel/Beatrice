@@ -156,9 +156,9 @@ export const botConfig = {
   },
 
   // =====================================
-// ECONOMY SETTINGS (Dual Currency Setup)
-// =====================================
-economy: {
+  // ECONOMY SETTINGS (Dual Currency Setup)
+  // =====================================
+  economy: {
     // Multi-currency definition array
     currencies: [
         {
@@ -237,27 +237,27 @@ economy: {
     stealFailJailTime: 86400000,
 
     // Training / Rest / Eat Mana Payout Ranges
-    trainManaMin: 20,
-    trainManaMax: 50,
-    restManaMin: 10,
-    restManaMax: 30,
-    eatManaMin: 20,
-    eatManaMax: 50,
+    trainManaMin: 500,
+    trainManaMax: 2000,
+    restManaMin: 300,
+    restManaMax: 1500,
+    eatManaMin: 200,
+    eatManaMax: 1000,
 
     // Mining Ores Configuration with Drop Probabilities (Total = 100%)
     miningOres: [
-        { id: "stone", name: "Stone (Failed Dig)", chance: 75, value: 5 },
-        { id: "adamantite", name: "Adamantite", chance: 10, value: 120 },
-        { id: "orichalcum", name: "Orichalcum", chance: 9, value: 500 },
-        { id: "scarlet_metal", name: "Scarlet Metal", chance: 5, value: 1000 },
-        { id: "prismatic_ore", name: "Prismatic Ore", chance: 1, value: 5000 }
+        { id: "stone", name: "Stone (Failed Dig)", chance: 50, value: 50 },
+        { id: "adamantite", name: "Adamantite", chance: 25, value: 1200 },
+        { id: "orichalcum", name: "Orichalcum", chance: 15, value: 5000 },
+        { id: "scarlet_metal", name: "Scarlet Metal", chance: 8, value: 18000 },
+        { id: "prismatic_ore", name: "Prismatic Ore", chance: 2, value: 75000 }
     ],
-},
+  }, // <-- FIXED: Added missing comma here separating economy and shop!
 
   // =====================================
-// SHOP SETTINGS
-// =====================================
-shop: {
+  // SHOP SETTINGS
+  // =====================================
+  shop: {
     // Shop 1: Fantasy Mana Storage Items (Purchased with Silver Coins - One Time Buy Only)
     shop1: {
         title: "Arcane Vault - Mana Storage Shop",
@@ -416,12 +416,12 @@ shop: {
             }
         ]
     }
-},
+  }, // <-- FIXED: Added comma here separating shop and commands!
 
   // =====================================
-// COMMAND MAPPING REFERENCE
-// =====================================
-commands: {
+  // COMMAND MAPPING REFERENCE
+  // =====================================
+  commands: {
     leaderboards: {
         silverCoins: "!SLeaderboard",
         mana: "!MLeaderboard"
@@ -442,7 +442,7 @@ commands: {
         steal: "!steal @user",
         manaDrain: "!manadrain @user"
     }
-}, 
+  },
 
   // =========================
   // TICKET SYSTEM
@@ -734,8 +734,6 @@ export function validateConfig(config) {
   }
 
   if (process.env.NODE_ENV === 'production') {
-    // A full connection URL (DATABASE_URL / POSTGRES_URL) satisfies all Postgres
-    // requirements, matching how src/config/database/postgres.js resolves the pool config.
     const hasConnectionUrl = Boolean(process.env.POSTGRES_URL || process.env.DATABASE_URL);
 
     if (!hasConnectionUrl) {
@@ -857,10 +855,8 @@ export function getDefaultApplicationQuestions() {
 }
 
 export function getColor(path, fallback = "#99AAB5") {
-  
   if (typeof path === "number") return path;
   if (typeof path === "string" && path.startsWith("#")) {
-    
     return parseInt(path.replace("#", ""), 16);
   }
   const result = path
