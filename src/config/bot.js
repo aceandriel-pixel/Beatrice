@@ -155,59 +155,269 @@ export const botConfig = {
     },
   },
 
-  // =========================
-  // ECONOMY SETTINGS
-  // =========================
-  economy: {
+  // =====================================
+// ECONOMY SETTINGS (Dual Currency Setup)
+// =====================================
+economy: {
+    // Multi-currency definition array
+    currencies: [
+        {
+            id: "silver_coins",
+            name: "Silver Coin",
+            namePlural: "Silver Coins",
+            symbol: "🪙",
+            startingBalance: 0
+        },
+        {
+            id: "mana",
+            name: "Mana",
+            namePlural: "Mana",
+            symbol: ".✧.",
+            startingBalance: 0
+        }
+    ],
+
+    // Primary/Default currency fallback if framework expects a single object
     currency: {
-      // Currency display name.
-      name: "Mana",
-      // Plural display name.
-      namePlural: "Mana",
-      // Currency symbol shown in balances.
-      symbol: ".𖢻 ݁ ˖",
+        name: "Mana",
+        namePlural: "Mana",
+        symbol: ".✧.",
     },
 
     // Starting balance for new users.
     startingBalance: 0,
 
-    // Maximum bank amount before upgrades (if upgrades are used).
-    baseBankCapacity: 100000,
+    // Work command random payout range (Silver Coins).
+    workMin: 1000,
+    workMax: 10000,
 
-    // Daily reward amount.
-    dailyAmount: 100,
+    // Steal command random payout range (Silver Coins).
+    stealMin: 25000,
+    stealMax: 150000,
 
-    // Work command random payout range.
-    workMin: 10,
-    workMax: 100,
+    // Steal mechanics configuration
+    stealPercentage: 0.70,           // Steals 70% of target's silver coins on success
+    stealFailPenalty: 0.50,          // Deducts 50% of the user's own silver coins on failure
 
-    // Beg command random payout range.
-    begMin: 10,
-    begMax: 50,
+    // Mana Drain settings (Steals 10% of target's current Mana)
+    manaDrainPercentage: 0.10,
 
     // Command cooldowns (milliseconds).
+    // Note: shield has no cooldown (set to 0) as it makes you permanently immune.
     cooldowns: {
-      daily: 24 * 60 * 60 * 1000,
-      work: 60 * 60 * 1000,
-      crime: 2 * 60 * 60 * 1000,
-      rob: 4 * 60 * 60 * 1000,
+        work: 1 * 60 * 60 * 1000,       // 1 hour cooldown for work
+        steal: 1 * 60 * 60 * 1000,      // 1 hour cooldown on success
+        mine: 4 * 60 * 60 * 1000,       // 4 hours cooldown for mining
+        shield: 0,                      // Permanent activation (0 cooldown)
+        train: 2 * 60 * 60 * 1000,      // 2 hours cooldown for train
+        rest: 3 * 60 * 60 * 1000,       // 3 hours cooldown for rest
+        eat: 1 * 60 * 60 * 1000,        // 1 hour cooldown for eat
+        manaDrain: 6 * 60 * 60 * 1000,  // 6 hours cooldown for mana drain
     },
 
-    // Chance to succeed when robbing (0.4 = 40%).
-    robSuccessRate: 0.4,
+    // Timed Command Custom Success & Cooldown Messages
+    messages: {
+        work: "You swung your pickaxe and hammered out a hard day's labor, earning some honest Silver Coins!",
+        steal: "In the dead of shadows, you successfully swiped 70% of your target's silver coins pouch!",
+        stealFail: "You were caught red-handed trying to pickpocket! Guard intervention penalized you by losing 50% of your silver coins.",
+        mine: "You ventured deep into the cavernous depths and extracted rare magical veins from the stone!",
+        shield: "You permanently activated your protective anti-theft barrier! Both your silver stash and your mana reserve are now forever secure from theft and drains.",
+        train: "You channeled intense magical focus through your veins, compressing raw elements into extra Mana!",
+        rest: "You meditated deeply in a sanctuary of silence, restoring your spiritual energy and generating Mana.",
+        eat: "You consumed a rich, mana-infused elixir feast, fueling your spiritual core with fresh Mana!",
+        manaDrain: "You performed a dark ritual, successfully siphoning away a fraction of your target's glowing Mana!",
+        cooldown: "⏳ You are exhausted or your cooldown hasn't refreshed yet! Please wait **{time}** before using this command again."
+    },
 
-    // Jail time after failed rob (milliseconds).
-    // 3600000 = 1 hour.
-    robFailJailTime: 3600000,
-  },
+    // Chance to succeed when stealing (0.2 = 20%).
+    stealSuccessRate: 0.2,
 
-  // =========================
-  // SHOP SETTINGS
-  // =========================
-  // Add shop defaults here when needed.
-  shop: {
+    // Jail time after failed steal (milliseconds).
+    // 86400000 = 24 hours.
+    stealFailJailTime: 86400000,
 
-  },
+    // Training / Rest / Eat Mana Payout Ranges
+    trainManaMin: 500,
+    trainManaMax: 2000,
+    restManaMin: 300,
+    restManaMax: 1500,
+    eatManaMin: 200,
+    eatManaMax: 1000,
+
+    // Mining Ores Configuration with Drop Probabilities (Total = 100%)
+    miningOres: [
+        { id: "stone", name: "Stone (Failed Dig)", chance: 50, value: 50 },
+        { id: "adamantite", name: "Adamantite", chance: 25, value: 1200 },
+        { id: "orichalcum", name: "Orichalcum", chance: 15, value: 5000 },
+        { id: "scarlet_metal", name: "Scarlet Metal", chance: 8, value: 18000 },
+        { id: "prismatic_ore", name: "Prismatic Ore", chance: 2, value: 75000 }
+    ],
+},
+
+  // =====================================
+// SHOP SETTINGS
+// =====================================
+shop: {
+    // Shop 1: Fantasy Mana Storage Items (Purchased with Silver Coins - One Time Buy Only)
+    shop1: {
+        title: "Arcane Vault - Mana Storage Shop",
+        currency: "Silver Coins",
+        currencyId: "silver_coins",
+        items: [
+            {
+                id: "mana_flask_small",
+                name: "Minor Mana Flask",
+                price: 1000,
+                capacityBoost: 5000,
+                unique: true,
+                description: "A small glass vial that expands your mana reservoir."
+            },
+            {
+                id: "mana_crystal_shard",
+                name: "Raw Mana Crystal Shard",
+                price: 5000,
+                capacityBoost: 25000,
+                unique: true,
+                description: "Radiates faint magical energy to enlarge your mental capacity."
+            },
+            {
+                id: "spell_tome_novice",
+                name: "Grimoire of the Adept",
+                price: 12000,
+                capacityBoost: 60000,
+                unique: true,
+                description: "Teaches mind-stretching techniques to hold more mana."
+            },
+            {
+                id: "enchanted_amulet",
+                name: "Sapphire Mana Amulet",
+                price: 25000,
+                capacityBoost: 150000,
+                unique: true,
+                description: "An ancient amulet worn by sorcerers to stabilize vast mana flows."
+            },
+            {
+                id: "rune_etched_ring",
+                name: "Ring of Leyline Echoes",
+                price: 50000,
+                capacityBoost: 350000,
+                unique: true,
+                description: "Taps directly into underground mana leys to expand storage."
+            },
+            {
+                id: "mystic_pouch",
+                name: "Bottomless Ether Pouch",
+                price: 100000,
+                capacityBoost: 800000,
+                unique: true,
+                description: "A magical pouch that bends space to store extra arcane essence."
+            },
+            {
+                id: "celestial_chalice",
+                name: "Starlight Chalice",
+                price: 250000,
+                capacityBoost: 2000000,
+                unique: true,
+                description: "Filled with liquid starlight to radically enhance capacity."
+            },
+            {
+                id: "dragon_scale_core",
+                name: "Draconic Mana Core",
+                price: 600000,
+                capacityBoost: 5000000,
+                unique: true,
+                description: "Imbued with dragon magic to withstand massive magical surges."
+            },
+            {
+                id: "archmage_mantle",
+                name: "Mantle of the Archmage",
+                price: 1500000,
+                capacityBoost: 15000000,
+                unique: true,
+                description: "Heavy woven robes that permanently elevate your magical limits."
+            },
+            {
+                id: "nexus_obelisk_fragment",
+                name: "Fragment of the World Nexus",
+                price: 5000000,
+                capacityBoost: 50000000,
+                unique: true,
+                description: "A piece of the universal nexus granting near-godly mana capacity."
+            }
+        ]
+    },
+
+    // Shop 2: Customizable Items with Owner Ping on Purchase (Purchased with Mana)
+    shop2: {
+        title: "Custom Command & Request Shop",
+        currency: "Mana",
+        currencyId: "mana",
+        pingOwnerOnBuy: true,
+        items: [
+            {
+                id: "custom_item_1",
+                name: "Custom Title Token",
+                price: 10000,
+                description: "Change this name to whatever you like! Buying this pings the owner."
+            },
+            {
+                id: "custom_item_2",
+                name: "Custom Role Pass",
+                price: 20000,
+                description: "Change this name to whatever you like! Buying this pings the owner."
+            },
+            {
+                id: "custom_item_3",
+                name: "VIP Badge Slot",
+                price: 30000,
+                description: "Change this name to whatever you like! Buying this pings the owner."
+            },
+            {
+                id: "custom_item_4",
+                name: "Special Wish Ticket",
+                price: 40000,
+                description: "Change this name to whatever you like! Buying this pings the owner."
+            },
+            {
+                id: "custom_item_5",
+                name: "Custom Color Request",
+                price: 50000,
+                description: "Change this name to whatever you like! Buying this pings the owner."
+            },
+            {
+                id: "custom_item_6",
+                name: "Alias Item Slot",
+                price: 60000,
+                description: "Change this name to whatever you like! Buying this pings the owner."
+            },
+            {
+                id: "custom_item_7",
+                name: "Developer Token",
+                price: 70000,
+                description: "Change this name to whatever you like! Buying this pings the owner."
+            },
+            {
+                id: "custom_item_8",
+                name: "Exclusive Perk Pass",
+                price: 80000,
+                description: "Change this name to whatever you like! Buying this pings the owner."
+            },
+            {
+                id: "custom_item_9",
+                name: "Bounty Setter Voucher",
+                price: 90000,
+                description: "Change this name to whatever you like! Buying this pings the owner."
+            },
+            {
+                id: "custom_item_10",
+                name: "Owner's Direct Contract",
+                price: 100000,
+                description: "Change this name to whatever you like! Buying this pings the owner."
+            }
+        ]
+    }
+},
+
 
   // =========================
   // TICKET SYSTEM
