@@ -69,7 +69,7 @@ export default {
 
         // 4. Validate Currency and Balance
         const currencyId = shopData.currencyId; // 'silver_coins' or 'mana'
-        const currencySymbol = currencyId === 'silver_coins' ? '🪙' : '.✧.';
+        const currencySymbol = currencyId === 'silver_coins' ? '⛃⛂' : '.✧.';
         let userBalance = currencyId === 'silver_coins' ? userData.wallet : userData.mana;
 
         if (userBalance < item.price) {
