@@ -39,7 +39,7 @@ export default {
       : (args[0]?.toLowerCase() || 'help');
 
     const eco = botConfig.economy;
-    const silverSymbol = eco.currencies.find(c => c.id === 'silver_coins')?.symbol || '🪙';
+    const silverSymbol = eco.currencies.find(c => c.id === 'silver_coins')?.symbol || '⛃⛂';
     const manaSymbol = eco.currencies.find(c => c.id === 'mana')?.symbol || '.✧.';
 
     switch (subcommand) {
