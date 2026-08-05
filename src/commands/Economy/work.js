@@ -6,8 +6,8 @@ import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHan
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 const COOLDOWN = botConfig?.economy?.cooldowns?.work || 1 * 60 * 60 * 1000;
-const MIN_WIN = botConfig?.economy?.workMin || 1000;
-const MAX_WIN = botConfig?.economy?.workMax || 10000;
+const MIN_WIN = botConfig?.economy?.workMin || 10;
+const MAX_WIN = botConfig?.economy?.workMax || 150;
 
 export default {
     data: new SlashCommandBuilder()
