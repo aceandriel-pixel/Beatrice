@@ -54,7 +54,7 @@ export default {
 
         await setEconomyData(client, guildId, userId, userData);
 
-        const currencySymbol = botConfig.economy.currencies.find(c => c.id === 'silver_coins')?.symbol || '🪙';
+        const currencySymbol = botConfig.economy.currencies.find(c => c.id === 'silver_coins')?.symbol || '⛃⛂';
         const replyEmbed = successEmbed(
             'Labor Completed',
             `${botConfig.economy.messages.work} **(+${earned.toLocaleString()} ${currencySymbol})**`
