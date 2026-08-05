@@ -1,19 +1,20 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { successEmbed } from '../../utils/embeds.js';
+import { successEmbed, errorEmbed } from '../../utils/embeds.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { botConfig } from '../../config/bot.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
-const COOLDOWN = botConfig?.economy?.cooldowns?.steal || 1 * 60 * 60 * 1000;
-const SUCCESS_RATE = botConfig?.economy?.stealSuccessRate ?? 0.2;
-const STEAL_PERCENTAGE = botConfig?.economy?.stealPercentage ?? 0.70;
-const FAIL_PENALTY = botConfig?.economy?.stealFailPenalty ?? 0.50;
+const SUCCESS_COOLDOWN = 4 * 60 * 60 * 1000;   // 4 hours on success
+const FAIL_COOLDOWN = 24 * 60 * 60 * 1000;      // 24 hours on failure
+const SUCCESS_CHANCE = 0.30;                    // 30% chance
+const STEAL_PERCENTAGE = 0.70;                  // 70% of target's current silver coins
+const FAIL_PENALTY_PERCENTAGE = 0.50;           // 50% reduction of user's silver coins on failure
 
 export default {
   data: new SlashCommandBuilder()
     .setName('steal')
-    .setDescription('Attempt to steal Silver Coins from another user')
+    .setDescription('Attempt to steal 70% of a target\'s silver coins (30% Success Rate)')
     .addUserOption(option =>
       option
         .setName('target')
@@ -49,21 +50,17 @@ export default {
 
     let userData = await getEconomyData(client, guildId, userId);
     if (!userData) {
-      throw createError(
-        "Failed to load economy data",
-        ErrorTypes.DATABASE,
-        "Failed to load your economy data. Please try again later.",
-        { userId, guildId }
-      );
+      userData = { wallet: 0, lastSteal: 0 };
     }
 
     const lastSteal = userData.lastSteal || 0;
-    const remainingTime = lastSteal + COOLDOWN - Date.now();
+    const currentCooldown = userData.lastStealWasFailure ? FAIL_COOLDOWN : SUCCESS_COOLDOWN;
+    const remainingTime = lastSteal + currentCooldown - Date.now();
 
     if (remainingTime > 0) {
-      const minutes = Math.floor(remainingTime / 60000);
-      const seconds = Math.floor((remainingTime % 60000) / 1000);
-      let timeMessage = minutes > 0 ? `${minutes} minute(s)` : `${seconds} second(s)`;
+      const hours = Math.floor(remainingTime / (1000 * 60 * 60));
+      const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / 60000);
+      let timeMessage = hours > 0 ? `${hours} hour(s) ${minutes} minute(s)` : `${minutes} minute(s)`;
 
       throw createError(
         "Steal cooldown active",
@@ -75,51 +72,63 @@ export default {
 
     let targetData = await getEconomyData(client, guildId, targetUser.id);
     if (!targetData) {
-      targetData = { wallet: 0 };
+      targetData = { wallet: 0, shield: false };
     }
 
-    const targetBalance = targetData.wallet || 0;
-    const currencySymbol = botConfig.economy.currencies.find(c => c.id === 'silver_coins')?.symbol || '⛃⛂';
+    if (targetData.shield) {
+      throw createError(
+        "Target Protected",
+        ErrorTypes.VALIDATION,
+        "This user has an active **Shield** barrier protecting their silver coins from being stolen!",
+        { targetId: targetUser.id }
+      );
+    }
 
-    userData.lastSteal = Date.now();
+    const roll = Math.random(); // Random number between 0 and 1
+    const currencySymbol = botConfig.economy.currencies.find(c => c.id === 'silver_coins')?.symbol || '🪙';
 
-    const isSuccess = Math.random() < SUCCESS_RATE;
+    if (roll <= SUCCESS_CHANCE) {
+      // SUCCESS: 30% chance
+      const targetWallet = targetData.wallet || 0;
+      const stolenAmount = Math.floor(targetWallet * STEAL_PERCENTAGE);
 
-    if (isSuccess) {
-      const stolenAmount = Math.floor(targetBalance * STEAL_PERCENTAGE);
-      
       if (stolenAmount <= 0) {
-        await setEconomyData(client, guildId, userId, userData);
-        const replyEmbed = successEmbed(
-          'Steal Attempt Failed',
-          `Your target has no Silver Coins to steal!`
+        throw createError(
+          "No Coins to Steal",
+          ErrorTypes.VALIDATION,
+          "Your target does not have enough silver coins in their wallet!",
+          { targetId: targetUser.id }
         );
-        await interaction.editReply({ embeds: [replyEmbed] });
-        return;
       }
 
-      targetData.wallet = targetBalance - stolenAmount;
+      targetData.wallet = targetWallet - stolenAmount;
       userData.wallet = (userData.wallet || 0) + stolenAmount;
+      userData.lastSteal = Date.now();
+      userData.lastStealWasFailure = false; // Success cooldown = 4 hours
 
       await setEconomyData(client, guildId, targetUser.id, targetData);
       await setEconomyData(client, guildId, userId, userData);
 
       const replyEmbed = successEmbed(
-        'Heist Successful',
-        `${botConfig.economy.messages.steal} **(+${stolenAmount.toLocaleString()} ${currencySymbol})**`
+        'Steal Successful!',
+        `In the shadows, you successfully swiped **${stolenAmount.toLocaleString()} ${currencySymbol}** (70%) from ${targetUser}!`
       );
 
       await interaction.editReply({ embeds: [replyEmbed] });
     } else {
-      const userBalance = userData.wallet || 0;
-      const penaltyAmount = Math.floor(userBalance * FAIL_PENALTY);
+      // FAILURE: 70% chance
+      const userWallet = userData.wallet || 0;
+      const penaltyAmount = Math.floor(userWallet * FAIL_PENALTY_PERCENTAGE);
 
-      userData.wallet = userBalance - penaltyAmount;
+      userData.wallet = Math.max(0, userWallet - penaltyAmount);
+      userData.lastSteal = Date.now();
+      userData.lastStealWasFailure = true; // Failure cooldown = 24 hours
+
       await setEconomyData(client, guildId, userId, userData);
 
-      const replyEmbed = successEmbed(
-        'Caught Red-Handed',
-        `${botConfig.economy.messages.stealFail} **(-${penaltyAmount.toLocaleString()} ${currencySymbol})**`
+      const replyEmbed = errorEmbed(
+        'Steal Failed!',
+        `You were caught red-handed trying to pickpocket! Guard intervention penalized you by losing **${penaltyAmount.toLocaleString()} ${currencySymbol}** (50% of your silver coins). Your next steal cooldown is now **24 hours**.`
       );
 
       await interaction.editReply({ embeds: [replyEmbed] });
