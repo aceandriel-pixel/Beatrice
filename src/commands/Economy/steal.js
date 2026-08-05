@@ -85,7 +85,7 @@ export default {
     }
 
     const roll = Math.random(); // Random number between 0 and 1
-    const currencySymbol = botConfig.economy.currencies.find(c => c.id === 'silver_coins')?.symbol || '🪙';
+    const currencySymbol = botConfig.economy.currencies.find(c => c.id === 'silver_coins')?.symbol || '⛃⛂';
 
     if (roll <= SUCCESS_CHANCE) {
       // SUCCESS: 30% chance
