@@ -7,7 +7,7 @@ export const economyConfig = {
             id: "silver_coins",
             name: "Silver Coin",
             namePlural: "Silver Coins",
-            symbol: "🪙",
+            symbol: "⛃⛂",
             startingBalance: 0
         },
         {
