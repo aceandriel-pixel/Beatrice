@@ -35,7 +35,7 @@ export default {
             .setColor(botConfig.embeds.colors.economy)
             .addFields(
                 { 
-                    name: '🪙 Silver Coins', 
+                    name: '⛃⛂ Silver Coins', 
                     value: `**${silverCoins.toLocaleString()}** Silver Coins`, 
                     inline: false 
                 },
