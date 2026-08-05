@@ -122,3 +122,12 @@ export default {
         await interaction.editReply({ embeds: [replyEmbed] });
     }),
 };
+
+// From buy.js
+if (item.capacityBoost) {
+    userData.maxManaCapacity += item.capacityBoost;
+    extraMessage = `\n✨ Your **Max Mana Capacity** increased by **+${item.capacityBoost.toLocaleString()}**!`;
+}
+
+// Saves the upgraded maximum capacity to the database
+await setEconomyData(client, guildId, userId, userData);
