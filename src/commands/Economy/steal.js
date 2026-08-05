@@ -79,7 +79,7 @@ export default {
     }
 
     const targetBalance = targetData.wallet || 0;
-    const currencySymbol = botConfig.economy.currencies.find(c => c.id === 'silver_coins')?.symbol || '🪙';
+    const currencySymbol = botConfig.economy.currencies.find(c => c.id === 'silver_coins')?.symbol || '⛃⛂';
 
     userData.lastSteal = Date.now();
 
