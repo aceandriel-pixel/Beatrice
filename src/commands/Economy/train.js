@@ -23,7 +23,7 @@ export default {
 
     let userData = await getEconomyData(client, guildId, userId);
     if (!userData) {
-      userData = { mana: 0, maxMana: 5000, lastTrain: 0 };
+      userData = { mana: 0, maxMana: 1000, lastTrain: 0 };
     }
 
     const lastTrain = userData.lastTrain || 0;
