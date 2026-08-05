@@ -6,8 +6,8 @@ import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHan
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 const COOLDOWN = botConfig?.economy?.cooldowns?.rest || 3 * 60 * 60 * 1000;
-const MANA_MIN = botConfig?.economy?.restManaMin || 300;
-const MANA_MAX = botConfig?.economy?.restManaMax || 1500;
+const MANA_MIN = botConfig?.economy?.restManaMin || 10;
+const MANA_MAX = botConfig?.economy?.restManaMax || 100;
 
 export default {
   data: new SlashCommandBuilder()
@@ -23,7 +23,7 @@ export default {
 
     let userData = await getEconomyData(client, guildId, userId);
     if (!userData) {
-      userData = { mana: 0, maxMana: 5000, lastRest: 0 };
+      userData = { mana: 0, maxMana: 1000, lastRest: 0 };
     }
 
     const lastRest = userData.lastRest || 0;
@@ -43,7 +43,7 @@ export default {
     }
 
     const earnedMana = Math.floor(Math.random() * (MANA_MAX - MANA_MIN + 1)) + MANA_MIN;
-    const maxManaLimit = userData.maxMana || 5000;
+    const maxManaLimit = userData.maxMana || 1000;
     const currentMana = userData.mana || 0;
 
     userData.mana = Math.min(maxManaLimit, currentMana + earnedMana);
