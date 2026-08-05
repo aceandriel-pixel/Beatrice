@@ -11,10 +11,14 @@ export default {
 
   async execute(message, args, client) {
     const eco = botConfig.economy;
+    
+    // Calculates the random mana amount using your config limits
     const manaGained = Math.floor(Math.random() * (eco.eatManaMax - eco.eatManaMin + 1)) + eco.eatManaMin;
     const manaSymbol = eco.currencies.find(c => c.id === 'mana')?.symbol || '.✧.';
 
     // TODO: Add database logic to add `manaGained` Mana to the user's balance
+    
+    // Now it successfully includes the amount gained!
     await message.reply(`${eco.messages.eat} **(+${manaGained} ${manaSymbol})**`);
   },
 };
