@@ -6,8 +6,8 @@ import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHan
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 const COOLDOWN = botConfig?.economy?.cooldowns?.train || 2 * 60 * 60 * 1000;
-const MANA_MIN = botConfig?.economy?.trainManaMin || 500;
-const MANA_MAX = botConfig?.economy?.trainManaMax || 2000;
+const MANA_MIN = botConfig?.economy?.trainManaMin || 50;
+const MANA_MAX = botConfig?.economy?.trainManaMax || 200;
 
 export default {
   data: new SlashCommandBuilder()
@@ -43,7 +43,7 @@ export default {
     }
 
     const earnedMana = Math.floor(Math.random() * (MANA_MAX - MANA_MIN + 1)) + MANA_MIN;
-    const maxManaLimit = userData.maxMana || 5000;
+    const maxManaLimit = userData.maxMana || 1000;
     const currentMana = userData.mana || 0;
 
     userData.mana = Math.min(maxManaLimit, currentMana + earnedMana);
