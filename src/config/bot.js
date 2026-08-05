@@ -165,7 +165,7 @@ export const botConfig = {
             id: "silver_coins",
             name: "Silver Coin",
             namePlural: "Silver Coins",
-            symbol: "🪙",
+            symbol: "⛃⛂",
             startingBalance: 0
         },
         {
