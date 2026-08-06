@@ -11,7 +11,7 @@ export default {
                 .setRequired(true)
                 .addChoices(
                     { name: 'Arcane Vault (Mana Storage)', value: 'shop1' },
-                    { name: 'Custom Requests', value: 'shop2' }
+                    { name: 'Godly Shop', value: 'shop2' }
                 )),
 
     async execute(interaction) {
