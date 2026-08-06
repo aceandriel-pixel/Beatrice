@@ -91,7 +91,7 @@ export const economyConfig = {
             ]
         },
         shop2: {
-            title: "Custom Command & Request Shop",
+            title: "Godly Shop",
             currency: "Mana",
             currencyId: "mana",
             pingOwnerOnBuy: true,
