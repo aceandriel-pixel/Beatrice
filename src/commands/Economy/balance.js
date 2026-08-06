@@ -27,7 +27,7 @@ export default {
         // Fallback default values if no data exists yet
         const silverCoins = userData?.wallet || 0;
         const mana = userData?.mana || 0;
-        const maxManaCapacity = userData?.maxManaCapacity || 0;
+        const maxManaCapacity = userData?.maxManaCapacity || 1000;
 
         const embed = new EmbedBuilder()
             .setTitle(`💰 Wealth of ${targetUser.username}`)
