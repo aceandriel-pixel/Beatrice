@@ -56,7 +56,7 @@ export default {
         userData.inventory = userData.inventory || [];
         userData.wallet = userData.wallet || 0; // Silver Coins
         userData.mana = userData.mana || 0;     // Mana
-        userData.maxManaCapacity = userData.maxManaCapacity || 0; // Base/Expanded Capacity
+        userData.maxManaCapacity = userData.maxManaCapacity || 1000; // Base/Expanded Capacity
 
         // 3. Check if unique/one-time purchase is already owned
         if (item.unique && userData.inventory.includes(item.id)) {
