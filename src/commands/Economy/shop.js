@@ -29,7 +29,7 @@ export default {
         const embed = new EmbedBuilder()
             .setTitle(shopData.title)
             .setDescription(`Currency used: **${shopData.currency}**`)
-            .setColor(botConfig.embeds?.colors?.economy || '#5865F2');
+            .setColor(botConfig.embeds?.colors?.economy || '#00FFFF');
 
         shopData.items.forEach((item, index) => {
             embed.addFields({
