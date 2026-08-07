@@ -97,16 +97,16 @@ export const economyConfig = {
             currencyId: "mana",
             pingOwnerOnBuy: true,
             items: [
-                { id: "custom_item_1", name: "Eternal II", price: 20000, description: "Change this name to whatever you like!" },
-                { id: "custom_item_2", name: "Ice Shard", price: 20000, description: "Change this name to whatever you like!" },
-                { id: "custom_item_3", name: "Eternal III", price: 40000, description: "Change this name to whatever you like!" },
-                { id: "custom_item_4", name: "Eternal IV", price: 40000, description: "Change this name to whatever you like!" },
-                { id: "custom_item_5", name: "BioBlade", price: 40000, description: "Change this name to whatever you like!" },
-                { id: "custom_item_6", name: "Heat", price: 60000, description: "Change this name to whatever you like!" },
-                { id: "custom_item_7", name: "Green Luger", price: 750000, description: "Change this name to whatever you like!" },
-                { id: "custom_item_8", name: "Batwing", price: 1500000, description: "Change this name to whatever you like!" },
-                { id: "custom_item_9", name: "Heartblade", price: 2500000, description: "Change this name to whatever you like!" },
-                { id: "custom_item_10", name: "IcePiercer", price: 7000000, description: "Change this name to whatever you like!" }
+                { id: "custom_item_1", name: "Eternal II", price: 20000 },
+                { id: "custom_item_2", name: "Ice Shard", price: 20000 },
+                { id: "custom_item_3", name: "Eternal III", price: 40000 },
+                { id: "custom_item_4", name: "Eternal IV", price: 40000 },
+                { id: "custom_item_5", name: "BioBlade", price: 40000 },
+                { id: "custom_item_6", name: "Heat", price: 60000 },
+                { id: "custom_item_7", name: "Green Luger", price: 750000 },
+                { id: "custom_item_8", name: "Batwing", price: 1500000 },
+                { id: "custom_item_9", name: "Heartblade", price: 2500000 },
+                { id: "custom_item_10", name: "IcePiercer", price: 7000000 }
             ]
         }
     }
