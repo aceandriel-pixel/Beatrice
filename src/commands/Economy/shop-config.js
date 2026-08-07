@@ -90,8 +90,9 @@ export const economyConfig = {
                 { id: "nexus_obelisk_fragment", name: "Fragment of the World Nexus", price: 5000000, capacityBoost: 5000000, unique: true, description: "A piece of the universal nexus granting near-godly mana capacity." }
             ]
         },
-        shop2: {
+                shop2: {
             title: "Godly Shop",
+            description: "The Godly Shop offers an exclusive selection of legendary items and powerful gear purchasable with Mana.",
             currency: "Mana",
             currencyId: "mana",
             pingOwnerOnBuy: true,
