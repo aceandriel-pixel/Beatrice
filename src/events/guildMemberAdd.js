@@ -53,7 +53,7 @@ export default {
                         await setEconomyData(member.client, guild.id, inviter.id, inviterData);
 
                         // Broadcast public notification mentioning both users, highlighting the inviter reward
-         const TARGET_CHANNEL_ID = "YOUR_CHANNEL_ID_HERE";
+         const TARGET_CHANNEL_ID = "1535263439788703907";
         const inviteChannel = guild.channels.cache.get(TARGET_CHANNEL_ID);
         if (inviteChannel) {
             await inviteChannel.send({
