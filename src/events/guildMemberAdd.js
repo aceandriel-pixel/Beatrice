@@ -1,7 +1,7 @@
 import { Events, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { getColor, botConfig } from '../config/bot.js';
 import { getGuildConfig } from '../services/config/guildConfig.js';
-import { getWelcomeConfig } from '../utils/database.js';
+import { getWelcomeConfig, getEconomyData, setEconomyData } from '../utils/database.js';
 import { formatWelcomeMessage } from '../utils/welcome.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { getServerCounters, updateCounter } from '../services/serverstatsService.js';
@@ -16,18 +16,73 @@ export default {
     try {
         const { guild, user } = member;
         
+        // ==========================================
+        // 1. AUTOMATED INVITE REWARD SYSTEM (Inviter Only)
+        // ==========================================
+        if (!user.bot) {
+            try {
+                const newInvites = await guild.invites.fetch();
+                const oldInvites = member.client.inviteCache?.get(guild.id) || new Map();
+                const usedInvite = newInvites.find(inv => inv.uses > (oldInvites.get(inv.code) || 0));
+
+                if (!member.client.inviteCache) member.client.inviteCache = new Map();
+                member.client.inviteCache.set(guild.id, new Map(newInvites.map(invite => [invite.code, invite.uses])));
+
+                if (usedInvite && usedInvite.inviter && usedInvite.inviter.id !== user.id) {
+                    const inviter = usedInvite.inviter;
+
+                    let userData = await getEconomyData(member.client, guild.id, user.id);
+                    if (!userData) userData = { wallet: 0, mana: 0 };
+
+                    if (!userData.invitedBy && !userData.hasClaimedInvite) {
+                        let inviterData = await getEconomyData(member.client, guild.id, inviter.id);
+                        if (!inviterData) inviterData = { wallet: 0, mana: 0 };
+
+                        const REWARD_SILVER = 5000;
+                        const REWARD_MANA = 1000;
+
+                        // Only flag the new user as invited (No economy rewards for the new user)
+                        userData.invitedBy = inviter.id;
+                        userData.hasClaimedInvite = true;
+
+                        // Give rewards exclusively to the inviter
+                        inviterData.wallet = (inviterData.wallet || 0) + REWARD_SILVER;
+                        inviterData.mana = (inviterData.mana || 0) + REWARD_MANA;
+
+                        await setEconomyData(member.client, guild.id, user.id, userData);
+                        await setEconomyData(member.client, guild.id, inviter.id, inviterData);
+
+                        // Broadcast public notification mentioning both users, highlighting the inviter reward
+                        const welcomeConfig = await getWelcomeConfig(member.client, guild.id);
+                        if (welcomeConfig?.channelId) {
+                            const inviteChannel = guild.channels.cache.get(welcomeConfig.channelId);
+                            if (inviteChannel) {
+                                await inviteChannel.send({
+                                    content: `🎉 ${user} was invited by ${inviter}! ${inviter} has been automatically rewarded with **5,000 ⛃⛂ Silver Coins** and **1,000 .✧. Mana**!`
+                                });
+                            }
+                        }
+
+                        logger.info(`[INVITE SYSTEM] ${inviter.tag} invited ${user.tag}. Inviter rewarded automatically.`);
+                    }
+                }
+            } catch (inviteErr) {
+                logger.debug('Error processing automated invite reward on join:', inviteErr);
+            }
+        }
+
+        // ==========================================
+        // 2. EXISTING WELCOME, ROLES & LOGGING LOGIC
+        // ==========================================
         const config = await getGuildConfig(member.client, guild.id);
-        
         const welcomeConfig = await getWelcomeConfig(member.client, guild.id);
-        
         const welcomeChannelId = welcomeConfig?.channelId;
 
         if (welcomeConfig?.enabled && welcomeChannelId) {
             const channel = guild.channels.cache.get(welcomeChannelId);
             const me = guild.members.me;
             const permissions = channel?.isTextBased?.() && me ? channel.permissionsFor(me) : null;
-            // Skip only the welcome message if permissions are missing; the rest of the
-            // join pipeline (auto-role, verification, logging, counters) must still run.
+            
             if (permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
                 const formatData = { user, guild, member };
                 const welcomeMessage = formatWelcomeMessage(
@@ -36,21 +91,13 @@ export default {
                 );
 
                 const messageContent = welcomeConfig.welcomePing ? user.toString() : null;
-
-                const embedTitle = formatWelcomeMessage(
-                    welcomeConfig.welcomeEmbed?.title || '🎉 Welcome!',
-                    formatData
-                );
-                const embedFooter = welcomeConfig.welcomeEmbed?.footer
-                    ? formatWelcomeMessage(welcomeConfig.welcomeEmbed.footer, formatData)
-                    : `Welcome to ${guild.name}!`;
+                const embedTitle = formatWelcomeMessage(welcomeConfig.welcomeEmbed?.title || '🎉 Welcome!', formatData);
+                const embedFooter = welcomeConfig.welcomeEmbed?.footer ? formatWelcomeMessage(welcomeConfig.welcomeEmbed.footer, formatData) : `Welcome to ${guild.name}!`;
 
                 const canEmbed = permissions.has(PermissionFlagsBits.EmbedLinks);
 
                 if (!canEmbed) {
-                    await channel.send({
-                        content: messageContent || welcomeMessage
-                    });
+                    await channel.send({ content: messageContent || welcomeMessage });
                 } else {
                     const embed = new EmbedBuilder()
                         .setColor(welcomeConfig.welcomeEmbed?.color || getColor('success'))
@@ -70,10 +117,7 @@ export default {
                         embed.setImage(welcomeConfig.welcomeEmbed.image.url);
                     }
                     
-                    await channel.send({ 
-                        content: messageContent,
-                        embeds: [embed] 
-                    });
+                    await channel.send({ content: messageContent, embeds: [embed] });
                 }
             }
         }
@@ -85,18 +129,12 @@ export default {
             if (delay > 0) {
                 const timeout = setTimeout(async () => {
                     const role = guild.roles.cache.get(singleRoleId);
-                    if (role) {
-                        await assignRoleSafely(member, role);
-                    }
+                    if (role) await assignRoleSafely(member, role);
                 }, delay * 1000);
-                if (typeof timeout.unref === 'function') {
-                    timeout.unref();
-                }
+                if (typeof timeout.unref === 'function') timeout.unref();
             } else {
                 const role = guild.roles.cache.get(singleRoleId);
-                if (role) {
-                    await assignRoleSafely(member, role);
-                }
+                if (role) await assignRoleSafely(member, role);
             }
         }
         
@@ -159,33 +197,10 @@ export default {
 
 async function handleVerification(member, guild, verificationConfig, client) {
     const { autoVerifyOnJoin } = await import('../services/verificationService.js');
-    
     try {
-        const result = await autoVerifyOnJoin(client, guild, member, verificationConfig);
-        
-        if (result.autoVerified) {
-            logger.info('User auto-verified on join', {
-                guildId: guild.id,
-                userId: member.id,
-                userTag: member.user.tag,
-                roleName: result.roleName,
-                criteria: result.criteria
-            });
-        } else {
-            logger.debug('User not auto-verified on join', {
-                guildId: guild.id,
-                userId: member.id,
-                reason: result.reason
-            });
-        }
-
+        await autoVerifyOnJoin(client, guild, member, verificationConfig);
     } catch (error) {
-        logger.error('Error in auto-verification for member', {
-            guildId: guild.id,
-            userId: member.id,
-            userTag: member.user.tag,
-            error: error.message
-        });
+        logger.error('Error in auto-verification for member', { error: error.message });
     }
 }
 
