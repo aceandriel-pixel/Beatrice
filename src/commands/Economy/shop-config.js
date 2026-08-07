@@ -116,5 +116,6 @@ const allShops = Object.values(economyConfig.shop);
 allShops.forEach(shop => {
     console.log(shop.title);
 });
+console.log("LOADED SHOP 2 ITEM 1:", economyConfig.shop.shop2.items[0].name);
 
 export default economyConfig;
