@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
 import { botConfig } from '../../config/bot.js';
-import { economyConfig } from './shop-config.js'; // 1. Import economyConfig
+import { economyConfig } from './shop-config.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -19,7 +19,7 @@ export default {
     async execute(interaction) {
         const selectedShopKey = interaction.options.getString('category');
         
-        // 2. Read from economyConfig instead of botConfig
+        // Read from economyConfig
         const shopData = economyConfig.shop[selectedShopKey];
 
         if (!shopData) {
