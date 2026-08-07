@@ -1,5 +1,8 @@
+export const economyConfig = { ... }
+import { botConfig } from '../../config/bot.js';
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
 import { botConfig } from '../../config/bot.js';
+import { economyConfig } from './shop-config.js'; // 1. Import economyConfig
 
 export default {
     data: new SlashCommandBuilder()
@@ -12,11 +15,16 @@ export default {
                 .addChoices(
                     { name: 'Arcane Vault (Mana Storage)', value: 'shop1' },
                     { name: 'Godly Shop', value: 'shop2' }
-                )),
+                )
+        ),
 
+ const shopData = botConfig.shop[selectedShopKey];  
+    
     async execute(interaction) {
         const selectedShopKey = interaction.options.getString('category');
-        const shopData = botConfig.shop[selectedShopKey];
+        
+        // 2. Read from economyConfig instead of botConfig
+        const shopData = economyConfig.shop[selectedShopKey];
 
         if (!shopData) {
             return interaction.reply({ content: 'Shop not found!', ephemeral: true });
@@ -25,12 +33,12 @@ export default {
         const embed = new EmbedBuilder()
             .setTitle(shopData.title)
             .setDescription(`Currency used: **${shopData.currency}**`)
-            .setColor(botConfig.embeds.colors.economy);
+            .setColor(botConfig.embeds?.colors?.economy || '#5865F2');
 
         shopData.items.forEach((item, index) => {
             embed.addFields({
                 name: `${index + 1}. ${item.name} - ${item.price.toLocaleString()} ${shopData.currency}`,
-                value: `${item.description} ${item.capacityBoost ? `\n*Capacity Boost: +${item.capacityBoost.toLocaleString()} Mana*` : ''}`,
+                value: `${item.description}${item.capacityBoost ? `\n*Capacity Boost: +${item.capacityBoost.toLocaleString()}*` : ''}`,
                 inline: false
             });
         });
