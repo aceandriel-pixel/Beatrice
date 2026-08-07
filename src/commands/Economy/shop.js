@@ -25,10 +25,10 @@ export default {
         if (!shopData) {
             return interaction.reply({ content: 'Shop not found!', ephemeral: true });
         }
-
+   
         const embed = new EmbedBuilder()
             .setTitle(shopData.title)
-            .setDescription(`Currency used: **${shopData.currency}**`)
+            .setDescription(shopData.description || `Currency used: **${shopData.currency}**`)
             .setColor(botConfig.embeds?.colors?.economy || '#00FFFF');
 
         shopData.items.forEach((item, index) => {
