@@ -1,7 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { successEmbed } from '../../utils/embeds.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
-import { botConfig } from '../../config/bot.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
@@ -37,15 +36,17 @@ export default {
     const deferred = await InteractionHelper.safeDefer(interaction);
     if (!deferred) return;
 
-    const userId = interaction.user.id;
-    const owners = botConfig.commands?.owners || [];
+    // ==========================================
+    // PUT YOUR DISCORD USER ID BETWEEN THE QUOTES
+    // ==========================================
+    const BOT_OWNER_ID = "1095871824866324530"; 
 
-    if (!owners.includes(userId)) {
+    if (interaction.user.id !== BOT_OWNER_ID) {
       throw createError(
         "Permission Denied",
         ErrorTypes.FORBIDDEN,
-        "You do not have permission to use this command. Only bot owners can give currency.",
-        { userId }
+        "You do not have permission to use this command. Only the bot owner can use this.",
+        { userId: interaction.user.id }
       );
     }
 
@@ -58,8 +59,7 @@ export default {
       throw createError(
         "Invalid target",
         ErrorTypes.VALIDATION,
-        "You cannot give currency to bots!",
-        { userId, targetId: targetUser.id }
+        "You cannot give currency to bots!"
       );
     }
 
@@ -68,9 +68,8 @@ export default {
       targetData = { wallet: 0, mana: 0 };
     }
 
-    const currencyConfig = botConfig.economy.currencies.find(c => c.id === currencyType);
-    const currencySymbol = currencyConfig?.symbol || (currencyType === 'silver_coins' ? '⛃⛂' : '.✧.');
-    const currencyName = currencyConfig?.namePlural || currencyType;
+    const currencySymbol = currencyType === 'silver_coins' ? '⛃⛂' : '.✧.';
+    const currencyName = currencyType === 'silver_coins' ? 'Silver Coins' : 'Mana';
 
     if (currencyType === 'silver_coins') {
       targetData.wallet = (targetData.wallet || 0) + amount;
@@ -88,4 +87,3 @@ export default {
     await interaction.editReply({ embeds: [replyEmbed] });
   }),
 };
-
