@@ -53,15 +53,13 @@ export default {
                         await setEconomyData(member.client, guild.id, inviter.id, inviterData);
 
                         // Broadcast public notification mentioning both users, highlighting the inviter reward
-                        const welcomeConfig = await getWelcomeConfig(member.client, guild.id);
-                        if (welcomeConfig?.channelId) {
-                            const inviteChannel = guild.channels.cache.get(welcomeConfig.channelId);
-                            if (inviteChannel) {
-                                await inviteChannel.send({
-                                    content: `🎉 ${user} was invited by ${inviter}! ${inviter} has been automatically rewarded with **5,000 ⛃⛂ Silver Coins** and **1,000 .✧. Mana**!`
-                                });
-                            }
-                        }
+         const TARGET_CHANNEL_ID = "YOUR_CHANNEL_ID_HERE";
+        const inviteChannel = guild.channels.cache.get(TARGET_CHANNEL_ID);
+        if (inviteChannel) {
+            await inviteChannel.send({
+                content: `🎉 ${user} was invited by ${inviter}! ${inviter} has been automatically rewarded with **5,000 ⛃⛂ Silver Coins** and **1,000 .✧. Mana**!`
+            });
+        }
 
                         logger.info(`[INVITE SYSTEM] ${inviter.tag} invited ${user.tag}. Inviter rewarded automatically.`);
                     }
