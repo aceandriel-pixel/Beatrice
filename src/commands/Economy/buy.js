@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { botConfig } from '../../config/bot.js';
+import { economyConfig } from './shop-config.js'; // 1. Import economyConfig instead of relying solely on botConfig
 import { successEmbed, errorEmbed } from '../../utils/embeds.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
@@ -15,7 +16,7 @@ export default {
                 .setRequired(true)
                 .addChoices(
                     { name: 'Arcane Vault (Mana Storage)', value: 'shop1' },
-                    { name: 'Custom Request Shop', value: 'shop2' }
+                    { name: 'Godly Shop', value: 'shop2' }
                 ))
         .addStringOption(option =>
             option.setName('item_id')
@@ -31,8 +32,8 @@ export default {
         const shopKey = interaction.options.getString('shop');
         const itemId = interaction.options.getString('item_id').toLowerCase();
 
-        // 1. Locate the shop and item from configuration
-        const shopData = botConfig.shop[shopKey];
+        // 1. Locate the shop and item from economyConfig
+        const shopData = economyConfig.shop[shopKey];
         if (!shopData) {
             throw createError("Invalid shop", ErrorTypes.VALIDATION, "The selected shop does not exist.");
         }
@@ -122,12 +123,3 @@ export default {
         await interaction.editReply({ embeds: [replyEmbed] });
     }),
 };
-
-// From buy.js
-if (item.capacityBoost) {
-    userData.maxManaCapacity += item.capacityBoost;
-    extraMessage = `\n✨ Your **Max Mana Capacity** increased by **+${item.capacityBoost.toLocaleString()}**!`;
-}
-
-// Saves the upgraded maximum capacity to the database
-await setEconomyData(client, guildId, userId, userData);
