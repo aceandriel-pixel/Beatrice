@@ -111,4 +111,10 @@ export const economyConfig = {
     }
 };
 
+const allShops = Object.values(economyConfig.shop);
+// Iterates through shop1 and shop2 properly
+allShops.forEach(shop => {
+    console.log(shop.title);
+});
+
 export default economyConfig;
