@@ -1,5 +1,3 @@
-export const economyConfig = { ... }
-import { botConfig } from '../../config/bot.js';
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
 import { botConfig } from '../../config/bot.js';
 import { economyConfig } from './shop-config.js'; // 1. Import economyConfig
@@ -18,8 +16,6 @@ export default {
                 )
         ),
 
- const shopData = botConfig.shop[selectedShopKey];  
-    
     async execute(interaction) {
         const selectedShopKey = interaction.options.getString('category');
         
