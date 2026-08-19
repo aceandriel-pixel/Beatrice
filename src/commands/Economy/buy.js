@@ -1,7 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { botConfig } from '../../config/bot.js';
-import { economyConfig } from './shop-config.js'; // 1. Import economyConfig instead of relying solely on botConfig
-import { successEmbed, errorEmbed } from '../../utils/embeds.js';
+import { economyConfig } from './shop-config.js';
+import { successEmbed } from '../../utils/embeds.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
@@ -107,7 +107,7 @@ export default {
             try {
                 const owner = await client.users.fetch(ownerId);
                 if (owner) {
-                    await owner.send(`🛒 **New Shop Purchase!**\nUser: <@${userId}> (${interaction.user.tag})\nItem: **${item.name}** (${item.id})\nCost: ${item.price.toLocaleString()} Mana`);
+                    await owner.send(`🛒 **New Shop Purchase!**\nUser: <@${userId}> (${interaction.user.username})\nItem: **${item.name}** (${item.id})\nCost: ${item.price.toLocaleString()} Mana`);
                 }
             } catch (err) {
                 // Ignore DM delivery failure if owner blocks DMs
