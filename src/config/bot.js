@@ -1,4 +1,5 @@
 import { logger } from '../utils/logger.js';
+import { Collection } from 'discord.js';
 
 export const botConfig = {
   // =========================
@@ -252,7 +253,15 @@ export const botConfig = {
         { id: "scarlet_metal", name: "Scarlet Metal", chance: 9, value: 1000 },
         { id: "prismatic_ore", name: "Prismatic Ore", chance: 1, value: 5000 }
     ],
-  }, // <-- FIXED: Added missing comma here separating economy and shop!
+  },
+
+  // =====================================
+  // INVITE TRACKER REWARDS CONFIGURATION
+  // =====================================
+  inviteTracker: {
+    silverReward: 5000,
+    manaReward: 1000,
+  },
 
   // =====================================
   // SHOP SETTINGS
@@ -416,7 +425,7 @@ export const botConfig = {
             }
         ]
     }
-  }, // <-- FIXED: Added comma here separating shop and commands!
+  },
 
   // =====================================
   // COMMAND MAPPING REFERENCE
