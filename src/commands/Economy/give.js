@@ -1,6 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { successEmbed } from '../../utils/embeds.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
+import { botConfig } from '../../config/bot.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
@@ -30,15 +31,13 @@ export default {
         .setDescription('The amount of currency to give')
         .setRequired(true)
         .setMinValue(1)
-    ),
+    )
+    .setDMPermission(false),
 
   execute: withErrorHandling(async (interaction, config, client) => {
     const deferred = await InteractionHelper.safeDefer(interaction);
     if (!deferred) return;
 
-    // ==========================================
-    // PUT YOUR DISCORD USER ID BETWEEN THE QUOTES
-    // ==========================================
     const BOT_OWNER_ID = "1095871824866324530"; 
 
     if (interaction.user.id !== BOT_OWNER_ID) {
@@ -65,14 +64,16 @@ export default {
 
     let targetData = await getEconomyData(client, guildId, targetUser.id);
     if (!targetData) {
-      targetData = { wallet: 0, mana: 0 };
+      targetData = { silver_coins: 0, mana: 0 };
     }
 
     const currencySymbol = currencyType === 'silver_coins' ? '⛃⛂' : '.✧.';
     const currencyName = currencyType === 'silver_coins' ? 'Silver Coins' : 'Mana';
 
     if (currencyType === 'silver_coins') {
-      targetData.wallet = (targetData.wallet || 0) + amount;
+      targetData.silver_coins = (targetData.silver_coins || targetData.wallet || 0) + amount;
+      // Clear legacy wallet key to prevent future splits
+      delete targetData.wallet; 
     } else if (currencyType === 'mana') {
       targetData.mana = (targetData.mana || 0) + amount;
     }
@@ -84,6 +85,6 @@ export default {
       `Successfully gave **${amount.toLocaleString()} ${currencySymbol} ${currencyName}** to ${targetUser}!`
     );
 
-    await interaction.editReply({ embeds: [replyEmbed] });
-  }),
+    await InteractionHelper.safeEditReply(interaction, { embeds: [replyEmbed] });
+  }, { command: 'give' })
 };
