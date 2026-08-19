@@ -17,7 +17,7 @@ export default {
         const { guild, user } = member;
         
         // ==========================================
-        // 1. AUTOMATED INVITE REWARD SYSTEM (Inviter Only)
+        // 1. AUTOMATED INVITE REWARD SYSTEM
         // ==========================================
         if (!user.bot) {
             try {
@@ -38,28 +38,28 @@ export default {
                         let inviterData = await getEconomyData(member.client, guild.id, inviter.id);
                         if (!inviterData) inviterData = { wallet: 0, mana: 0 };
 
-                        const REWARD_SILVER = 5000;
-                        const REWARD_MANA = 1000;
+                        const REWARD_SILVER = botConfig.inviteTracker?.silverReward || 5000;
+                        const REWARD_MANA = botConfig.inviteTracker?.manaReward || 1000;
 
-                        // Only flag the new user as invited (No economy rewards for the new user)
+                        // Mark user as invited
                         userData.invitedBy = inviter.id;
                         userData.hasClaimedInvite = true;
 
-                        // Give rewards exclusively to the inviter
+                        // Reward the inviter
                         inviterData.wallet = (inviterData.wallet || 0) + REWARD_SILVER;
                         inviterData.mana = (inviterData.mana || 0) + REWARD_MANA;
 
                         await setEconomyData(member.client, guild.id, user.id, userData);
                         await setEconomyData(member.client, guild.id, inviter.id, inviterData);
 
-                        // Broadcast public notification mentioning both users, highlighting the inviter reward
-         const TARGET_CHANNEL_ID = "1535263439788703907";
-        const inviteChannel = guild.channels.cache.get(TARGET_CHANNEL_ID);
-        if (inviteChannel) {
-            await inviteChannel.send({
-                content: `🎉 ${user} was invited by ${inviter}! ${inviter} has been automatically rewarded with **5,000 ⛃⛂ Silver Coins** and **1,000 .✧. Mana**!`
-            });
-        }
+                        // Broadcast notification and ping the inviter/channel as needed
+                        const TARGET_CHANNEL_ID = "1535263439788703907";
+                        const inviteChannel = guild.channels.cache.get(TARGET_CHANNEL_ID);
+                        if (inviteChannel) {
+                            await inviteChannel.send({
+                                content: `🎉 ${user} joined the server, invited by ${inviter}! ${inviter} has been automatically rewarded with **${REWARD_SILVER.toLocaleString()} ⛃⛂ Silver Coins** and **${REWARD_MANA.toLocaleString()} .✧. Mana**!`
+                            });
+                        }
 
                         logger.info(`[INVITE SYSTEM] ${inviter.tag} invited ${user.tag}. Inviter rewarded automatically.`);
                     }
@@ -70,7 +70,7 @@ export default {
         }
 
         // ==========================================
-        // 2. EXISTING WELCOME, ROLES & LOGGING LOGIC
+        // 2. WELCOME MESSAGES, ROLES & LOGGING LOGIC
         // ==========================================
         const config = await getGuildConfig(member.client, guild.id);
         const welcomeConfig = await getWelcomeConfig(member.client, guild.id);
