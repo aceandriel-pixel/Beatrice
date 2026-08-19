@@ -16,6 +16,22 @@ export default {
     try {
         const { guild, user } = member;
         
+        // ==========================================
+        // 1. UPDATE INVITE CACHE ON LEAVE
+        // ==========================================
+        if (!user.bot) {
+            try {
+                const newInvites = await guild.invites.fetch();
+                if (!member.client.inviteCache) member.client.inviteCache = new Map();
+                member.client.inviteCache.set(guild.id, new Map(newInvites.map(invite => [invite.code, invite.uses])));
+            } catch (inviteErr) {
+                logger.debug('Error updating invite cache on member leave:', inviteErr);
+            }
+        }
+        
+        // ==========================================
+        // 2. GOODBYE MESSAGE LOGIC
+        // ==========================================
         const welcomeConfig = await getWelcomeConfig(member.client, guild.id);
         
         const goodbyeChannelId = welcomeConfig?.goodbyeChannelId;
