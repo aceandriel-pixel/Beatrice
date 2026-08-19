@@ -47,7 +47,7 @@ export default {
             userData.inventory = [];
         }
 
-        // Prevent duplicate purchases of the same item
+        // Prevent duplicate purchases of items
         if (userData.inventory.includes(itemId)) {
             throw createError(
                 "Already owned",
@@ -84,9 +84,8 @@ export default {
             userData.mana_capacity = userData.maxMana;
         }
 
-        // Add item to inventory
+        // Add item to inventory and save data
         userData.inventory.push(itemId);
-
         await setEconomyData(client, guildId, userId, userData);
 
         const embed = new EmbedBuilder()
