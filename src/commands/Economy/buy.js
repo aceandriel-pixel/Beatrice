@@ -39,7 +39,21 @@ export default {
 
         let userData = await getEconomyData(client, guildId, userId);
         if (!userData) {
-            userData = { wallet: 0, mana: 0, maxMana: 1000 };
+            userData = { silver_coins: 0, mana: 0, maxMana: 1000, inventory: [] };
+        }
+
+        // Ensure inventory exists as an array
+        if (!userData.inventory) {
+            userData.inventory = [];
+        }
+
+        // Prevent duplicate purchases of the same item
+        if (userData.inventory.includes(itemId)) {
+            throw createError(
+                "Already owned",
+                ErrorTypes.VALIDATION,
+                "❌ You already own this item and cannot buy it again!"
+            );
         }
 
         const isShop1 = shop1Items.some(i => i.id === itemId);
@@ -55,21 +69,23 @@ export default {
             );
         }
 
-        // Deduct price and apply effects
+        // Deduct price and unify currency keys
         if (isShop1) {
-            if (userData.silver_coins !== undefined) {
-                userData.silver_coins -= item.price;
-            } else {
-                userData.wallet = (userData.wallet || 0) - item.price;
-            }
+            const currentCoins = userData.silver_coins !== undefined ? userData.silver_coins : (userData.wallet || 0);
+            userData.silver_coins = currentCoins - item.price;
+            delete userData.wallet; // Clear out legacy property
         } else {
             userData.mana -= item.price;
         }
 
+        // Apply item effects
         if (item.capacityBoost) {
             userData.maxMana = (userData.maxMana || userData.mana_capacity || 1000) + item.capacityBoost;
             userData.mana_capacity = userData.maxMana;
         }
+
+        // Add item to inventory
+        userData.inventory.push(itemId);
 
         await setEconomyData(client, guildId, userId, userData);
 
