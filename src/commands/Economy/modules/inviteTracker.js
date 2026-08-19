@@ -1,5 +1,5 @@
 import { Collection } from 'discord.js';
-import { getUserData, saveUserData, addManaWithOverflow } from './Currency.js';
+import { getEconomyData, setEconomyData } from '../../utils/economy.js'; // Adjust path based on your file depth
 
 // Cache to store invites per guild: guildId -> Map(inviteCode -> uses)
 export const inviteCache = new Collection();
@@ -19,90 +19,99 @@ export async function cacheGuildInvites(guild) {
 }
 
 /**
- * Handles new member joins, detects the inviter, and awards rewards once.
+ * Handles new member joins, detects the inviter, and rewards them once.
  */
-export async function handleGuildMemberAdd(member) {
+export async function handleGuildMemberAdd(member, client) {
     const { guild, user } = member;
 
-    // Ignore bot joins
     if (user.bot) return;
 
     try {
-        // Fetch current guild invites
         const newInvites = await guild.invites.fetch();
         const cachedInvites = inviteCache.get(guild.id) || new Collection();
 
-        // Find which invite's use count went up
         const usedInvite = newInvites.find(inv => {
             const cachedUses = cachedInvites.get(inv.code) || 0;
             return inv.uses > cachedUses;
         });
 
-        // Update cache with new invite uses
+        // Update cache
         const codeUses = new Collection();
         newInvites.forEach(inv => codeUses.set(inv.code, inv.uses));
         inviteCache.set(guild.id, codeUses);
 
-        if (!usedInvite || !usedInvite.inviter) {
-            return; // Could be custom URL, vanity invite, or OAuth join
-        }
+        if (!usedInvite || !usedInvite.inviter) return;
 
         const inviter = usedInvite.inviter;
+        if (inviter.id === user.id) return; // Prevent self-invites
 
-        // Prevent self-hosting/self-invites
-        if (inviter.id === user.id) return;
+        // Fetch inviter economy data using your project's helper
+        let inviterData = await getEconomyData(client, guild.id, inviter.id);
+        if (!inviterData) {
+            inviterData = { mana: 0, silver_coins: 0, maxMana: 1000 };
+        }
 
-        // Database check for one-time reward tracking
-        const dbData = getUserData(inviter.id);
-        
-        // Initialize history arrays if missing
-        if (!dbData.invited_users) dbData.invited_users = [];
-        if (!dbData.rewarded_invite_history) dbData.rewarded_invite_history = [];
+        if (!inviterData.invited_users) inviterData.invited_users = [];
+        if (!inviterData.rewarded_invite_history) inviterData.rewarded_invite_history = [];
 
-        // Check if this specific user was ever rewarded for before
-        if (dbData.rewarded_invite_history.includes(user.id)) {
-            // Already rewarded in the past, do not reward again if they left and rejoined
+        // Enforce rule: Reward can only be given ONCE per invited user (even if they leave and rejoin)
+        if (inviterData.rewarded_invite_history.includes(user.id)) {
             return;
         }
 
-        // Mark user as tracked and rewarded
-        if (!dbData.invited_users.includes(user.id)) {
-            dbData.invited_users.push(user.id);
+        inviterData.rewarded_invite_history.push(user.id);
+        if (!inviterData.invited_users.includes(user.id)) {
+            inviterData.invited_users.push(user.id);
         }
-        dbData.rewarded_invite_history.push(user.id);
 
-        // Give Rewards: 1k Mana (with overflow capacity rules) & 5k Silver Coins
-        const manaResult = addManaWithOverflow(inviter.id, 1000);
+        // Reward: 5,000 Silver Coins
+        inviterData.silver_coins = (inviterData.silver_coins || 0) + 5000;
+
+        // Reward: 1,000 Mana with Capacity Check & 1.25x Silver Overflow Conversion
+        const capacity = inviterData.maxMana || inviterData.mana_capacity || 1000;
+        const currentMana = inviterData.mana || 0;
+        const spaceLeft = Math.max(0, capacity - currentMana);
         
-        // Refresh latest database object for inviter to add Silver Coins safely
-        const updatedInviterData = getUserData(inviter.id);
-        updatedInviterData.silver_coins = (updatedInviterData.silver_coins || 0) + 5000;
-        saveUserData(inviter.id, updatedInviterData);
+        const rewardMana = 1000;
+        let addedToMana = 0;
+        let overflow = 0;
 
-        console.log(`[InviteTracker] ${inviter.tag} invited ${user.tag}. Rewarded 1,000 Mana & 5,000 Silver Coins!`);
+        if (rewardMana <= spaceLeft) {
+            addedToMana = rewardMana;
+            inviterData.mana = currentMana + rewardMana;
+        } else {
+            addedToMana = spaceLeft;
+            inviterData.mana = capacity;
+            overflow = rewardMana - spaceLeft;
+        }
+
+        if (overflow > 0) {
+            const convertedSilver = Math.floor(overflow * 1.25);
+            inviterData.silver_coins += convertedSilver;
+        }
+
+        // Save changes using your utility
+        await setEconomyData(client, guild.id, inviter.id, inviterData);
+        console.log(`[InviteTracker] Rewarded ${inviter.tag} for inviting ${user.tag} (5,000 Silver Coins & 1,000 Mana).`);
 
     } catch (err) {
-        console.error('Error handling guild member join invite tracking:', err);
+        console.error('Error handling member join invite tracking:', err);
     }
 }
 
 /**
- * Handles member leaves (keeps database tracking intact so they won't trigger rewards again if they rejoin)
+ * Handles member leaves (keeps database history intact so rewards won't trigger twice if they rejoin)
  */
 export async function handleGuildMemberRemove(member) {
-    const { guild, user } = member;
-    if (user.bot) return;
+    const { guild } = member;
+    if (member.user.bot) return;
 
     try {
-        // Refresh invite cache on member leave as well to keep counts accurate
         const newInvites = await guild.invites.fetch();
         const codeUses = new Collection();
         newInvites.forEach(inv => codeUses.set(inv.code, inv.uses));
         inviteCache.set(guild.id, codeUses);
-        
-        console.log(`[InviteTracker] ${user.tag} left the server.`);
     } catch (err) {
         console.error('Error updating invite cache on member leave:', err);
     }
 }
-
