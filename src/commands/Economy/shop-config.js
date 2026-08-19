@@ -90,33 +90,32 @@ export const economyConfig = {
                 { id: "nexus_obelisk_fragment", name: "Fragment of the World Nexus", price: 5000000, capacityBoost: 5000000, unique: true, description: "A piece of the universal nexus granting near-godly mana capacity." }
             ]
         },
-                shop2: {
+        shop2: {
             title: "Godly Shop",
             description: "The Godly Shop offers an exclusive selection of legendary items and powerful gear purchasable with Mana.",
             currency: "Mana",
             currencyId: "mana",
             pingOwnerOnBuy: true,
             items: [
-                { id: "custom_item_1", name: "Eternal II", price: 20000 },
-                { id: "custom_item_2", name: "Ice Shard", price: 20000 },
-                { id: "custom_item_3", name: "Eternal III", price: 40000 },
-                { id: "custom_item_4", name: "Eternal IV", price: 40000 },
-                { id: "custom_item_5", name: "BioBlade", price: 40000 },
-                { id: "custom_item_6", name: "Heat", price: 60000 },
-                { id: "custom_item_7", name: "Green Luger", price: 750000 },
-                { id: "custom_item_8", name: "Batwing", price: 1500000 },
-                { id: "custom_item_9", name: "Heartblade", price: 2500000 },
-                { id: "custom_item_10", name: "IcePiercer", price: 7000000 }
+                { id: "custom_item_1", name: "Eternal II", price: 20000, description: "Legendary weapon artifact." },
+                { id: "custom_item_2", name: "Ice Shard", price: 20000, description: "Frozen crystal dagger." },
+                { id: "custom_item_3", name: "Eternal III", price: 40000, description: "Upgraded tier artifact." },
+                { id: "custom_item_4", name: "Eternal IV", price: 40000, description: "Advanced tier artifact." },
+                { id: "custom_item_5", name: "BioBlade", price: 40000, description: "Organic infused blade." },
+                { id: "custom_item_6", name: "Heat", price: 60000, description: "Blazing hot sword element." },
+                { id: "custom_item_7", name: "Green Luger", price: 750000, description: "Rare firearm gear." },
+                { id: "custom_item_8", name: "Batwing", price: 1500000, description: "Shadow-forged wings." },
+                { id: "custom_item_9", name: "Heartblade", price: 2500000, description: "Vampiric edge." },
+                { id: "custom_item_10", name: "IcePiercer", price: 7000000, description: "Pierces through absolute zero." }
             ]
         }
     }
 };
 
+// Debug checks safely executed
 const allShops = Object.values(economyConfig.shop);
-// Iterates through shop1 and shop2 properly
 allShops.forEach(shop => {
-    console.log(shop.title);
+    console.log(`Loaded Shop: ${shop.title}`);
 });
-console.log("LOADED SHOP 2 ITEM 1:", economyConfig.shop.shop2.items[0].name);
 
 export default economyConfig;
