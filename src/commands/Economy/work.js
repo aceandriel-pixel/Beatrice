@@ -49,8 +49,10 @@ export default {
         }
 
         const earned = Math.floor(Math.random() * (MAX_WIN - MIN_WIN + 1)) + MIN_WIN;
-        userData.wallet = (userData.wallet || 0) + earned;
+        userData.silver_coins = (userData.silver_coins || userData.wallet || 0) + earned; // <--- Unifies it
         userData.lastWork = Date.now();
+
+
 
         await setEconomyData(client, guildId, userId, userData);
 
