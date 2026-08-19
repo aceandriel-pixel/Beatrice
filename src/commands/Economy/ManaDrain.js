@@ -49,9 +49,10 @@ export default {
 
     let userData = await getEconomyData(client, guildId, userId);
     if (!userData) {
-      userData = { mana: 0, maxMana: 5000, lastManaDrain: 0 };
+      userData = { mana: 0, silver_coins: 0, maxMana: 1000, lastManaDrain: 0 };
     }
 
+    const capacity = userData.maxMana || userData.mana_capacity || 1000;
     const lastDrain = userData.lastManaDrain || 0;
     const remainingTime = lastDrain + COOLDOWN - Date.now();
 
@@ -70,7 +71,7 @@ export default {
 
     let targetData = await getEconomyData(client, guildId, targetUser.id);
     if (!targetData) {
-      targetData = { mana: 0, maxMana: 5000, shield: false };
+      targetData = { mana: 0, maxMana: 1000, shield: false };
     }
 
     if (targetData.shield) {
@@ -104,18 +105,37 @@ export default {
       }
 
       targetData.mana = targetMana - drainedAmount;
-      
-      const maxManaLimit = userData.maxMana || 5000;
-      userData.mana = Math.min(maxManaLimit, (userData.mana || 0) + drainedAmount);
-
       await setEconomyData(client, guildId, targetUser.id, targetData);
+
+      // Apply capacity bounds and handle overflow conversion on siphoned mana
+      const currentMana = userData.mana || 0;
+      const spaceLeft = Math.max(0, capacity - currentMana);
+      let addedToMana = 0;
+      let overflow = 0;
+
+      if (drainedAmount <= spaceLeft) {
+        addedToMana = drainedAmount;
+        userData.mana = currentMana + drainedAmount;
+      } else {
+        addedToMana = spaceLeft;
+        userData.mana = capacity;
+        overflow = drainedAmount - spaceLeft;
+      }
+
+      let convertedSilver = 0;
+      if (overflow > 0) {
+        convertedSilver = Math.floor(overflow * 1.25);
+        userData.silver_coins = (userData.silver_coins || 0) + convertedSilver;
+      }
+
       await setEconomyData(client, guildId, userId, userData);
 
-      const replyEmbed = successEmbed(
-        'Mana Drain Successful (1% Critical Hit!)',
-        `Against all odds, your ritual succeeded! You siphoned **${drainedAmount.toLocaleString()} ${currencySymbol}** (10%) from ${targetUser}!`
-      );
+      let successDescription = `Against all odds, your ritual succeeded! You siphoned **${addedToMana.toLocaleString()} ${currencySymbol}** from ${targetUser}!`;
+      if (overflow > 0) {
+        successDescription += `\n✨ **Capacity Overflow!** Max limit reached. Excess **${overflow.toLocaleString()} Mana** converted into **${convertedSilver.toLocaleString()} Silver Coins** (1.25x rate)!`;
+      }
 
+      const replyEmbed = successEmbed('Mana Drain Successful (1% Critical Hit!)', successDescription);
       await interaction.editReply({ embeds: [replyEmbed] });
     } else {
       // FAILURE: 99% chance
@@ -123,7 +143,6 @@ export default {
       const penaltyAmount = Math.floor(userCurrentMana * FAIL_PENALTY_PERCENTAGE);
 
       userData.mana = Math.max(0, userCurrentMana - penaltyAmount);
-
       await setEconomyData(client, guildId, userId, userData);
 
       const replyEmbed = errorEmbed(
@@ -135,4 +154,3 @@ export default {
     }
   }),
 };
-
