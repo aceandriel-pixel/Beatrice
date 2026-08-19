@@ -51,10 +51,21 @@ export default {
             }
         }
 
-        userData.silver_coins = (userData.silver_coins || 0) + selectedOre.value;
+                const oreValue = selectedOre.value || selectedOre.price || 50; // Fallback value if undefined
+        
+        userData.silver_coins = (userData.silver_coins || 0) + oreValue;
         userData.lastMine = now;
 
         await setEconomyData(client, guildId, userId, userData);
+
+        const oreName = selectedOre.name || 'Unknown Ore';
+        const replyEmbed = successEmbed(
+            'Mining Expedition Successful!',
+            `${economyConfig.messages?.mine || 'You ventured into the mines and found:'}\n\nYou extracted **${oreName}** and gained **${oreValue.toLocaleString()}** Silver Coins!`
+        );
+
+        await InteractionHelper.safeEditReply(interaction, { embeds: [replyEmbed] });
+
 
         const replyEmbed = successEmbed(
             'Mining Expedition Successful!',
