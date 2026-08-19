@@ -23,9 +23,10 @@ export default {
 
     let userData = await getEconomyData(client, guildId, userId);
     if (!userData) {
-      userData = { mana: 0, maxMana: 1000, lastTrain: 0 };
+      userData = { mana: 0, silver_coins: 0, maxMana: 1000, lastTrain: 0 };
     }
 
+    const capacity = userData.maxMana || userData.mana_capacity || 1000;
     const lastTrain = userData.lastTrain || 0;
     const remainingTime = lastTrain + COOLDOWN - Date.now();
 
@@ -43,21 +44,38 @@ export default {
     }
 
     const earnedMana = Math.floor(Math.random() * (MANA_MAX - MANA_MIN + 1)) + MANA_MIN;
-    const maxManaLimit = userData.maxMana || 1000;
     const currentMana = userData.mana || 0;
 
-    userData.mana = Math.min(maxManaLimit, currentMana + earnedMana);
-    userData.lastTrain = Date.now();
+    const spaceLeft = Math.max(0, capacity - currentMana);
+    let addedToMana = 0;
+    let overflow = 0;
 
+    if (earnedMana <= spaceLeft) {
+      addedToMana = earnedMana;
+      userData.mana = currentMana + earnedMana;
+    } else {
+      addedToMana = spaceLeft;
+      userData.mana = capacity;
+      overflow = earnedMana - spaceLeft;
+    }
+
+    let convertedSilver = 0;
+    if (overflow > 0) {
+      convertedSilver = Math.floor(overflow * 1.25);
+      userData.silver_coins = (userData.silver_coins || 0) + convertedSilver;
+    }
+
+    userData.lastTrain = Date.now();
     await setEconomyData(client, guildId, userId, userData);
 
     const currencySymbol = botConfig.economy.currency.symbol;
-    const replyEmbed = successEmbed(
-      'Training Complete',
-      `${botConfig.economy.messages.train} **(+${earnedMana.toLocaleString()} ${currencySymbol})**`
-    );
+    let descriptionText = `${botConfig.economy.messages.train} **(+${addedToMana.toLocaleString()} ${currencySymbol})** (Capacity: ${userData.mana.toLocaleString()} / ${capacity.toLocaleString()})`;
 
+    if (overflow > 0) {
+      descriptionText += `\n✨ **Capacity Overflow!** Max limit reached. Excess **${overflow.toLocaleString()} Mana** converted into **${convertedSilver.toLocaleString()} Silver Coins** (1.25x rate)!`;
+    }
+
+    const replyEmbed = successEmbed('Training Complete', descriptionText);
     await interaction.editReply({ embeds: [replyEmbed] });
   }),
 };
-
