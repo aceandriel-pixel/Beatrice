@@ -1,6 +1,9 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { botConfig } from '../../config/bot.js';
-import { getUserData, saveUserData } from './Currency.js';
+import { economyConfig } from './shop-config.js';
+import { getEconomyData, setEconomyData } from '../../utils/economy.js';
+import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
+import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -10,42 +13,71 @@ export default {
             option.setName('item_id')
                 .setDescription('The ID of the item you want to buy')
                 .setRequired(true)
-        ),
+        )
+        .setDMPermission(false),
 
-    async execute(interaction) {
+    execute: withErrorHandling(async (interaction, config, client) => {
+        const deferred = await InteractionHelper.safeDefer(interaction);
+        if (!deferred) return;
+
         const itemId = interaction.options.getString('item_id');
         const userId = interaction.user.id;
+        const guildId = interaction.guildId;
         
-        // Locate item in Shop 1 or Shop 2 from botConfig
-        const shop1Items = botConfig.shop?.shop1?.items || [];
-        const shop2Items = botConfig.shop?.shop2?.items || [];
+        // Locate item in Shop 1 or Shop 2 from economyConfig
+        const shop1Items = economyConfig.shop?.shop1?.items || [];
+        const shop2Items = economyConfig.shop?.shop2?.items || [];
         const item = [...shop1Items, ...shop2Items].find(i => i.id === itemId);
 
         if (!item) {
-            return interaction.reply({ content: '❌ Invalid item ID provided.', ephemeral: true });
+            throw createError(
+                "Invalid item",
+                ErrorTypes.VALIDATION,
+                "❌ Invalid item ID provided. Please check the shop list."
+            );
         }
 
-        const userData = getUserData(userId);
+        let userData = await getEconomyData(client, guildId, userId);
+        if (!userData) {
+            userData = { wallet: 0, mana: 0, maxMana: 1000 };
+        }
+
         const isShop1 = shop1Items.some(i => i.id === itemId);
         const currencyKey = isShop1 ? 'silver_coins' : 'mana';
+        const userBalance = userData[currencyKey] || (isShop1 ? (userData.wallet || 0) : 0);
+        const currencyName = isShop1 ? 'Silver Coins' : 'Mana';
 
-        if ((userData[currencyKey] || 0) < item.price) {
-            return interaction.reply({ content: `❌ You do not have enough ${isShop1 ? 'Silver Coins' : 'Mana'} to buy this item!`, ephemeral: true });
+        if (userBalance < item.price) {
+            throw createError(
+                "Insufficient funds",
+                ErrorTypes.VALIDATION,
+                `❌ You do not have enough ${currencyName} to buy this item!`
+            );
         }
 
         // Deduct price and apply effects
-        userData[currencyKey] -= item.price;
-        if (item.capacityBoost) {
-            userData.mana_capacity = (userData.mana_capacity || 1000) + item.capacityBoost;
+        if (isShop1) {
+            if (userData.silver_coins !== undefined) {
+                userData.silver_coins -= item.price;
+            } else {
+                userData.wallet = (userData.wallet || 0) - item.price;
+            }
+        } else {
+            userData.mana -= item.price;
         }
 
-        saveUserData(userId, userData);
+        if (item.capacityBoost) {
+            userData.maxMana = (userData.maxMana || userData.mana_capacity || 1000) + item.capacityBoost;
+            userData.mana_capacity = userData.maxMana;
+        }
+
+        await setEconomyData(client, guildId, userId, userData);
 
         const embed = new EmbedBuilder()
             .setTitle('🛒 Purchase Successful!')
-            .setDescription(`You successfully purchased **${item.name}** for **${item.price.toLocaleString()}** ${isShop1 ? 'Silver Coins' : 'Mana'}!`)
+            .setDescription(`You successfully purchased **${item.name}** for **${item.price.toLocaleString()}** ${currencyName}!`)
             .setColor(botConfig.embeds?.colors?.success || '#57F287');
 
-        await interaction.reply({ embeds: [embed] });
-    }
+        await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+    }, { command: 'buy' })
 };
