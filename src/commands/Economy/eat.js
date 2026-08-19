@@ -23,8 +23,11 @@ export default {
 
     let userData = await getEconomyData(client, guildId, userId);
     if (!userData) {
-      userData = { mana: 0, maxMana: 5000, lastEat: 0 };
+      userData = { mana: 0, silver_coins: 0, maxMana: 1000, lastEat: 0 };
     }
+
+    // Fallback support if capacity field uses maxMana or mana_capacity
+    const capacity = userData.maxMana || userData.mana_capacity || 1000;
 
     const lastEat = userData.lastEat || 0;
     const remainingTime = lastEat + COOLDOWN - Date.now();
@@ -43,20 +46,38 @@ export default {
     }
 
     const earnedMana = Math.floor(Math.random() * (MANA_MAX - MANA_MIN + 1)) + MANA_MIN;
-    const maxManaLimit = userData.maxMana || 5000;
     const currentMana = userData.mana || 0;
 
-    userData.mana = Math.min(maxManaLimit, currentMana + earnedMana);
-    userData.lastEat = Date.now();
+    const spaceLeft = Math.max(0, capacity - currentMana);
+    let addedToMana = 0;
+    let overflow = 0;
 
+    if (earnedMana <= spaceLeft) {
+      addedToMana = earnedMana;
+      userData.mana = currentMana + earnedMana;
+    } else {
+      addedToMana = spaceLeft;
+      userData.mana = capacity;
+      overflow = earnedMana - spaceLeft;
+    }
+
+    let convertedSilver = 0;
+    if (overflow > 0) {
+      convertedSilver = Math.floor(overflow * 1.25);
+      userData.silver_coins = (userData.silver_coins || 0) + convertedSilver;
+    }
+
+    userData.lastEat = Date.now();
     await setEconomyData(client, guildId, userId, userData);
 
     const currencySymbol = botConfig.economy.currency.symbol;
-    const replyEmbed = successEmbed(
-      'Feast Consumed',
-      `${botConfig.economy.messages.eat} **(+${earnedMana.toLocaleString()} ${currencySymbol})**`
-    );
+    let descriptionText = `${botConfig.economy.messages.eat} **(+${addedToMana.toLocaleString()} ${currencySymbol})** (Capacity: ${userData.mana.toLocaleString()} / ${capacity.toLocaleString()})`;
 
+    if (overflow > 0) {
+      descriptionText += `\n✨ **Capacity Overflow!** Max limit reached. Excess **${overflow.toLocaleString()} Mana** converted into **${convertedSilver.toLocaleString()} Silver Coins** (1.25x rate)!`;
+    }
+
+    const replyEmbed = successEmbed('Feast Consumed', descriptionText);
     await interaction.editReply({ embeds: [replyEmbed] });
   }),
 };
