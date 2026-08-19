@@ -1,8 +1,8 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { botConfig } from '../config/botConfig.js';
+import { economyConfig } from './shop-config.js'; // Adjust path if necessary to your config
+import { addManaWithOverflow, getUserData, saveUserData } from './modules/Currency.js';
 
 export default {
-  // Define the base slash command with all subcommands
   data: new SlashCommandBuilder()
     .setName('economy')
     .setDescription('Manage your dual-currency economy (Silver Coins & Mana)')
@@ -32,20 +32,25 @@ export default {
   description: 'Manage your dual-currency economy (Silver Coins & Mana)',
 
   async execute(message, args, client) {
-    // Determine if it's a Slash Command or Text Command execution
     const isInteraction = message.isChatInputCommand?.() || message.options?.getSubcommand;
     const subcommand = isInteraction 
       ? message.options.getSubcommand() 
       : (args[0]?.toLowerCase() || 'help');
 
-    const eco = botConfig.economy;
+    const eco = economyConfig;
     const silverSymbol = eco.currencies.find(c => c.id === 'silver_coins')?.symbol || '⛃⛂';
     const manaSymbol = eco.currencies.find(c => c.id === 'mana')?.symbol || '.✧.';
+    const userId = message.user ? message.user.id : message.author.id;
 
     switch (subcommand) {
       case 'work': {
         const earned = Math.floor(Math.random() * (eco.workMax - eco.workMin + 1)) + eco.workMin;
-        // TODO: Add database logic to add `earned` Silver Coins
+        
+        // Update user silver coins in database safely
+        const userData = getUserData(userId);
+        userData.silver_coins = (userData.silver_coins || 0) + earned;
+        saveUserData(userId, userData);
+
         return message.reply(`${eco.messages.work} **(+${earned} ${silverSymbol})**`);
       }
 
@@ -61,8 +66,13 @@ export default {
             break;
           }
         }
-        // TODO: Add database logic to credit `selectedOre.value` Silver Coins
-        return message.reply(`${eco.messages.mine}\n⛏️ You extracted: **${selectedOre.name}** (Worth: **${selectedOre.value} ${silverSymbol}**)!`);
+
+        // Credit mined ore value as Silver Coins
+        const userData = getUserData(userId);
+        userData.silver_coins = (userData.silver_coins || 0) + selectedOre.value;
+        saveUserData(userId, userData);
+
+        return message.reply(`${eco.messages.mine}\n⛏️ You extracted: **${selectedOre.name}** (Worth: **${selectedOre.value.toLocaleString()} ${silverSymbol}**)!`);
       }
 
       case 'steal': {
@@ -74,32 +84,67 @@ export default {
           return message.reply("⚠️ You must specify a valid user to steal Silver Coins from!");
         }
 
+        if (target.id === userId) {
+          return message.reply("⚠️ You cannot steal from yourself!");
+        }
+
         const successRoll = Math.random();
+        const userData = getUserData(userId);
+        const targetData = getUserData(target.id);
+
         if (successRoll <= eco.stealSuccessRate) {
-          // TODO: Transfer silver coins logic
-          return message.reply(`${eco.messages.steal} (Target: <@${target.id}>) ${silverSymbol}`);
+          const targetCoins = targetData.silver_coins || 0;
+          const stolenAmount = Math.floor(targetCoins * eco.stealPercentage);
+
+          targetData.silver_coins = targetCoins - stolenAmount;
+          userData.silver_coins = (userData.silver_coins || 0) + stolenAmount;
+
+          saveUserData(userId, userData);
+          saveUserData(target.id, targetData);
+
+          return message.reply(`${eco.messages.steal} **(+${stolenAmount.toLocaleString()} ${silverSymbol})** from <@${target.id}>!`);
         } else {
-          // TODO: Penalty logic
-          return message.reply(`${eco.messages.stealFail}`);
+          // Apply fail penalty
+          const userCoins = userData.silver_coins || 0;
+          const penalty = Math.floor(userCoins * eco.stealFailPenalty);
+          userData.silver_coins = Math.max(0, userCoins - penalty);
+          saveUserData(userId, userData);
+
+          return message.reply(`${eco.messages.stealFail} **(-${penalty.toLocaleString()} ${silverSymbol})**`);
         }
       }
 
       case 'train': {
         const manaGained = Math.floor(Math.random() * (eco.trainManaMax - eco.trainManaMin + 1)) + eco.trainManaMin;
-        // TODO: Add database logic to add Mana
-        return message.reply(`${eco.messages.train} **(+${manaGained} ${manaSymbol})**`);
+        const result = addManaWithOverflow(userId, manaGained);
+
+        let replyText = `${eco.messages.train} **(+${result.addedToMana.toLocaleString()} ${manaSymbol})**`;
+        if (result.overflow > 0) {
+          replyText += `\n✨ Capacity maxed! Overflow of **${result.overflow.toLocaleString()} Mana** converted into **${result.convertedSilver.toLocaleString()} Silver Coins** (1.25x rate)!`;
+        }
+        return message.reply(replyText);
       }
 
       case 'rest': {
         const manaGained = Math.floor(Math.random() * (eco.restManaMax - eco.restManaMin + 1)) + eco.restManaMin;
-        // TODO: Add database logic to add Mana
-        return message.reply(`${eco.messages.rest} **(+${manaGained} ${manaSymbol})**`);
+        const result = addManaWithOverflow(userId, manaGained);
+
+        let replyText = `${eco.messages.rest} **(+${result.addedToMana.toLocaleString()} ${manaSymbol})**`;
+        if (result.overflow > 0) {
+          replyText += `\n✨ Capacity maxed! Overflow of **${result.overflow.toLocaleString()} Mana** converted into **${result.convertedSilver.toLocaleString()} Silver Coins** (1.25x rate)!`;
+        }
+        return message.reply(replyText);
       }
 
       case 'eat': {
         const manaGained = Math.floor(Math.random() * (eco.eatManaMax - eco.eatManaMin + 1)) + eco.eatManaMin;
-        // TODO: Add database logic to add Mana
-        return message.reply(`${eco.messages.eat} **(+${manaGained} ${manaSymbol})**`);
+        const result = addManaWithOverflow(userId, manaGained);
+
+        let replyText = `${eco.messages.eat} **(+${result.addedToMana.toLocaleString()} ${manaSymbol})**`;
+        if (result.overflow > 0) {
+          replyText += `\n✨ Capacity maxed! Overflow of **${result.overflow.toLocaleString()} Mana** converted into **${result.convertedSilver.toLocaleString()} Silver Coins** (1.25x rate)!`;
+        }
+        return message.reply(replyText);
       }
 
       case 'manadrain': {
@@ -108,16 +153,30 @@ export default {
           : message.mentions?.users?.first();
 
         if (!target) {
-          return message.reply("⚠️ You must specify a valid target user to drain Mana from!");
+          return message.reply("⚠️ You must specify a target user to drain Mana from!");
         }
 
-        const drainPercent = `${eco.manaDrainPercentage * 100}%`;
-        // TODO: Implement mana draining logic
-        return message.reply(`${eco.messages.manaDrain} Siphoned ${drainPercent} of <@${target.id}>'s Mana reservoir! ${manaSymbol}`);
+        if (target.id === userId) {
+          return message.reply("⚠️ You cannot drain your own mana!");
+        }
+
+        const targetData = getUserData(target.id);
+        const drainedAmount = Math.floor((targetData.mana || 0) * eco.manaDrainPercentage);
+
+        targetData.mana = Math.max(0, (targetData.mana || 0) - drainedAmount);
+        saveUserData(target.id, targetData);
+
+        const result = addManaWithOverflow(userId, drainedAmount);
+
+        return message.reply(`${eco.messages.manaDrain} Siphoned **${drainedAmount.toLocaleString()} Mana** from <@${target.id}>! ${manaSymbol}`);
       }
 
       case 'shield': {
-        // TODO: Activate shield logic in database
+        // Implement active shield flag in user database if needed
+        const userData = getUserData(userId);
+        userData.shieldActive = true;
+        saveUserData(userId, userData);
+
         return message.reply(`${eco.messages.shield}`);
       }
 
@@ -126,4 +185,3 @@ export default {
     }
   },
 };
-
