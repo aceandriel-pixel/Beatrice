@@ -189,7 +189,7 @@ export const botConfig = {
 
     // Work command random payout range (Silver Coins).
     workMin: 100,
-    workMax: 500,
+    workMax: 200,
 
     // Steal command random payout range (Silver Coins).
     stealMin: 200,
