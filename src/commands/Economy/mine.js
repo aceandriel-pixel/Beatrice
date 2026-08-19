@@ -19,7 +19,7 @@ export default {
 
         let userData = await getEconomyData(client, guildId, userId);
         if (!userData) {
-            userData = { wallet: 0, mana: 0, lastMine: 0 };
+            userData = { silver_coins: 0, mana: 0, lastMine: 0 };
         }
 
         const now = Date.now();
@@ -51,7 +51,7 @@ export default {
             }
         }
 
-        userData.wallet = (userData.wallet || 0) + selectedOre.value;
+        userData.silver_coins = (userData.silver_coins || 0) + selectedOre.value;
         userData.lastMine = now;
 
         await setEconomyData(client, guildId, userId, userData);
