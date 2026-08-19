@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { botConfig } from '../../config/bot.js';
-import { getUserData } from './modules/Currency.js';
+import { getUserData } from './Currency.js';
 
 export default {
     data: new SlashCommandBuilder()
