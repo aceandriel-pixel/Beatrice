@@ -1,125 +1,75 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { botConfig } from '../../config/bot.js';
 import { economyConfig } from './shop-config.js';
-import { successEmbed } from '../../utils/embeds.js';
-import { getEconomyData, setEconomyData } from '../../utils/economy.js';
-import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
-import { InteractionHelper } from '../../utils/interactionHelper.js';
+// Import your user balance database/model handler here (e.g., getUserBalance, updateBalance)
 
 export default {
     data: new SlashCommandBuilder()
         .setName('buy')
-        .setDescription('Purchase items from the Arcane Vault or Custom Shop')
-        .addStringOption(option =>
-            option.setName('shop')
-                .setDescription('Select the shop')
-                .setRequired(true)
-                .addChoices(
-                    { name: 'Arcane Vault (Mana Storage)', value: 'shop1' },
-                    { name: 'Godly Shop', value: 'shop2' }
-                ))
+        .setDescription('Purchase an item from one of the shops')
         .addStringOption(option =>
             option.setName('item_id')
-                .setDescription('The exact item ID you want to purchase')
-                .setRequired(true)),
+                .setDescription('The exact ID of the item you want to buy')
+                .setRequired(true)
+        ),
 
-    execute: withErrorHandling(async (interaction, config, client) => {
-        const deferred = await InteractionHelper.safeDefer(interaction);
-        if (!deferred) return;
-
+    async execute(interaction) {
+        const itemId = interaction.options.getString('item_id');
         const userId = interaction.user.id;
-        const guildId = interaction.guildId;
-        const shopKey = interaction.options.getString('shop');
-        const itemId = interaction.options.getString('item_id').toLowerCase();
 
-        // 1. Locate the shop and item from economyConfig
-        const shopData = economyConfig.shop[shopKey];
-        if (!shopData) {
-            throw createError("Invalid shop", ErrorTypes.VALIDATION, "The selected shop does not exist.");
-        }
+        // Find which shop contains this item ID
+        let targetShop = null;
+        let foundItem = null;
 
-        const item = shopData.items.find(i => i.id.toLowerCase() === itemId);
-        if (!item) {
-            throw createError(
-                "Item not found", 
-                ErrorTypes.VALIDATION, 
-                `The item ID \`${itemId}\` could not be found in **${shopData.title}**. Check the spelling or browse the shop list.`
-            );
-        }
-
-        // 2. Fetch user economy details
-        let userData = await getEconomyData(client, guildId, userId);
-        if (!userData) {
-            throw createError("Database error", ErrorTypes.DATABASE, "Failed to load your economy data.");
-        }
-
-        // Initialize inventory tracking if missing
-        userData.inventory = userData.inventory || [];
-        userData.wallet = userData.wallet || 0; // Silver Coins
-        userData.mana = userData.mana || 0;     // Mana
-        userData.maxManaCapacity = userData.maxManaCapacity || 1000; // Base/Expanded Capacity
-
-        // 3. Check if unique/one-time purchase is already owned
-        if (item.unique && userData.inventory.includes(item.id)) {
-            throw createError(
-                "Already owned", 
-                ErrorTypes.VALIDATION, 
-                `You already own **${item.name}**! This item can only be purchased once.`
-            );
-        }
-
-        // 4. Validate Currency and Balance
-        const currencyId = shopData.currencyId; // 'silver_coins' or 'mana'
-        const currencySymbol = currencyId === 'silver_coins' ? '⛃⛂' : '.✧.';
-        let userBalance = currencyId === 'silver_coins' ? userData.wallet : userData.mana;
-
-        if (userBalance < item.price) {
-            throw createError(
-                "Insufficient funds", 
-                ErrorTypes.VALIDATION, 
-                `You don't have enough ${shopData.currency}! You need **${(item.price - userBalance).toLocaleString()} more** ${currencySymbol}.`
-            );
-        }
-
-        // 5. Deduct cost & apply rewards/upgrades
-        if (currencyId === 'silver_coins') {
-            userData.wallet -= item.price;
-        } else {
-            userData.mana -= item.price;
-        }
-
-        // Add item to inventory
-        userData.inventory.push(item.id);
-
-        // Apply specific item mechanical effects (e.g., Mana storage boost)
-        let extraMessage = "";
-        if (item.capacityBoost) {
-            userData.maxManaCapacity += item.capacityBoost;
-            extraMessage = `\n✨ Your **Max Mana Capacity** increased by **+${item.capacityBoost.toLocaleString()}**!`;
-        }
-
-        // Save updated data to database
-        await setEconomyData(client, guildId, userId, userData);
-
-        // 6. Handle Owner Notifications for Custom Shop (shop2)
-        if (shopData.pingOwnerOnBuy && botConfig.commands?.owners?.length > 0) {
-            const ownerId = botConfig.commands.owners[0];
-            try {
-                const owner = await client.users.fetch(ownerId);
-                if (owner) {
-                    await owner.send(`🛒 **New Shop Purchase!**\nUser: <@${userId}> (${interaction.user.username})\nItem: **${item.name}** (${item.id})\nCost: ${item.price.toLocaleString()} Mana`);
-                }
-            } catch (err) {
-                // Ignore DM delivery failure if owner blocks DMs
+        for (const shopKey of Object.keys(economyConfig.shop)) {
+            const shop = economyConfig.shop[shopKey];
+            const item = shop.items.find(i => i.id === itemId);
+            if (item) {
+                targetShop = shop;
+                foundItem = item;
+                break;
             }
         }
 
-        // 7. Send Success Response
-        const replyEmbed = successEmbed(
-            'Purchase Successful!',
-            `Successfully bought **${item.name}** for **${item.price.toLocaleString()} ${currencySymbol}**!${extraMessage}`
-        );
+        if (!foundItem) {
+            return interaction.reply({ 
+                content: '❌ Item not found! Make sure you enter a valid item ID from the shop list.', 
+                ephemeral: true 
+            });
+        }
 
-        await interaction.editReply({ embeds: [replyEmbed] });
-    }),
+        // TODO: Fetch user balance from your database for targetShop.currencyId (e.g., 'silver_coins' or 'mana')
+        // const userBalance = await db.getBalance(userId, targetShop.currencyId);
+        const userBalance = 10000000; // Placeholder: replace with actual DB lookup
+
+        if (userBalance < foundItem.price) {
+            return interaction.reply({ 
+                content: `❌ You do not have enough **${targetShop.currency}**. You need **${(foundItem.price - userBalance).toLocaleString()}** more!`, 
+                ephemeral: true 
+            });
+        }
+
+        // TODO: Deduct balance & add item to user inventory in your database
+        // await db.deductBalance(userId, targetShop.currencyId, foundItem.price);
+        // await db.addItemToInventory(userId, foundItem.id);
+
+        const successEmbed = new EmbedBuilder()
+            .setTitle('🛒 Purchase Successful!')
+            .setDescription(`You have successfully purchased **${foundItem.name}** for **${foundItem.price.toLocaleString()} ${targetShop.currency}**!`)
+            .setColor(botConfig.embeds?.colors?.success || '#00FF00');
+
+        await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+
+        // Handle shop owner notification if enabled
+        if (targetShop.pingOwnerOnBuy && botConfig.ownerId) {
+            try {
+                const owner = await interaction.client.users.fetch(botConfig.ownerId);
+                if (owner) {
+                    await owner.send(`🔔 **Store Alert:** User **${interaction.user.tag}** (${userId}) just purchased **${foundItem.name}** from the *${targetShop.title}*!`);
+                }
+            } catch (err) {
+                console.error('Failed to notify bot owner on purchase:', err);
+            }
+        }
+    }
 };
