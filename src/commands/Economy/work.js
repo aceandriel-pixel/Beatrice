@@ -49,7 +49,7 @@ export default {
         }
 
         const earned = Math.floor(Math.random() * (MAX_WIN - MIN_WIN + 1)) + MIN_WIN;
-        userData.silver_coins = (userData.silver_coins || userData.wallet || 0) + earned; // <--- Unifies it
+        userData.silver_coins = (userData.silver_coins || 0) + earned;
         userData.lastWork = Date.now();
 
 
